@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>沖縄選挙ポータル</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#fff;color:#292929;font-family:Meiryo,'Yu Gothic',sans-serif}
+.wrap{max-width:1040px;margin:auto;padding:72px 22px 60px}
+.kicker{text-align:center;font-size:12px;font-weight:800;letter-spacing:.11em;color:#666}
+h1{text-align:center;font:800 52px/1.05 Georgia,'Yu Mincho',serif;letter-spacing:-.04em;margin:9px 0 10px}
+.deck{text-align:center;color:#666;line-height:1.7;margin:0 auto 34px;max-width:650px}
+.rule{border-top:4px solid #111;margin:0 auto 34px;max-width:850px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:28px}
+.card{border:1px solid #d8d8d8;padding:26px 26px 23px}
+.live{border-top:6px solid #C93238}.history{border-top:6px solid #1675B9}
+.title{font:800 27px Georgia,'Yu Mincho',serif;margin-bottom:9px}
+.copy{color:#666;line-height:1.7;min-height:82px}
+a.button{display:block;text-align:center;margin-top:20px;padding:13px;background:#222;color:#fff;text-decoration:none;font-weight:800;border-radius:3px}
+.live a.button{background:#C93238}.history a.button{background:#1675B9}
+@media(max-width:680px){.wrap{padding:42px 13px}.grid{grid-template-columns:1fr}h1{font-size:38px}.copy{min-height:auto}}
+</style></head>
+<body><div class="wrap">
+<div class="kicker">OKINAWA ELECTION PORTAL</div>
+<h1>沖縄選挙ポータル</h1>
+<div class="deck">開票速報と過去の選挙結果を、ひとつの入口から見るための統合ポータル。</div>
+<div class="rule"></div>
+<div class="grid">
+<div class="card live"><div class="title">開票速報</div><div class="copy">開票中の得票、リード幅、推定残票、過去選挙からの保革シフトを追います。</div><a class="button" href="live.html">開票速報を見る</a></div>
+<div class="card history"><div class="title">過去の選挙結果</div><div class="copy">選挙を切り替えながら、市町村別結果や保革マージンの変化を比較します。</div><a class="button" href="history.html">過去の選挙結果を見る</a></div>
+</div>
+</div></body></html>

@@ -1,0 +1,94 @@
+[
+  {
+    "path": "HTMLプレビューを開く.bat",
+    "size_bytes": 50
+  },
+  {
+    "path": "README.md",
+    "size_bytes": 1367
+  },
+  {
+    "path": "__pycache__/app.cpython-313.pyc",
+    "size_bytes": 5333
+  },
+  {
+    "path": "__pycache__/historical_results.cpython-313.pyc",
+    "size_bytes": 39764
+  },
+  {
+    "path": "__pycache__/live_results.cpython-313.pyc",
+    "size_bytes": 52591
+  },
+  {
+    "path": "app.py",
+    "size_bytes": 4249
+  },
+  {
+    "path": "data/elections.json",
+    "size_bytes": 1066
+  },
+  {
+    "path": "data/layout_boxes.json",
+    "size_bytes": 1160
+  },
+  {
+    "path": "data/municipalities.json",
+    "size_bytes": 11626
+  },
+  {
+    "path": "data/okinawa_municipalities_display_desktop.geojson",
+    "size_bytes": 1532275
+  },
+  {
+    "path": "data/okinawa_municipalities_display_desktop_boxed.geojson",
+    "size_bytes": 1490381
+  },
+  {
+    "path": "data/okinawa_municipalities_display_mobile.geojson",
+    "size_bytes": 1532308
+  },
+  {
+    "path": "data/okinawa_municipalities_display_mobile_boxed.geojson",
+    "size_bytes": 1492590
+  },
+  {
+    "path": "data/statewide_results.json",
+    "size_bytes": 317629
+  },
+  {
+    "path": "data/turnout.json",
+    "size_bytes": 11655
+  },
+  {
+    "path": "historical_results.py",
+    "size_bytes": 27053
+  },
+  {
+    "path": "live_results.py",
+    "size_bytes": 37413
+  },
+  {
+    "path": "preview_site/README.txt",
+    "size_bytes": 522
+  },
+  {
+    "path": "preview_site/history.html",
+    "size_bytes": 6485807
+  },
+  {
+    "path": "preview_site/index.html",
+    "size_bytes": 2209
+  },
+  {
+    "path": "preview_site/live.html",
+    "size_bytes": 10045959
+  },
+  {
+    "path": "requirements.txt",
+    "size_bytes": 41
+  },
+  {
+    "path": "run_portal.bat",
+    "size_bytes": 51
+  }
+]
