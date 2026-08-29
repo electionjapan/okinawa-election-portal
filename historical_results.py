@@ -37,19 +37,27 @@ MAP_GROUPS = [
 
 
 # Portal navigation
-nav_back, nav_label = st.columns([1.0, 7.0], gap="small")
+st.markdown('<div class="portal-nav-spacer"></div>', unsafe_allow_html=True)
+nav_back, nav_label = st.columns([1.7, 6.3], gap="small")
 with nav_back:
-    if st.button("← トップへ", key="portal_back_history", use_container_width=True):
+    if st.button("← トップへ戻る", key="portal_back_history", use_container_width=True):
         st.session_state["portal_page"] = "home"
         st.rerun()
 with nav_label:
-    st.caption("沖縄選挙ポータル / 過去の選挙結果")
+    st.markdown('<div class="portal-breadcrumb">沖縄選挙ポータル / 過去の選挙結果</div>', unsafe_allow_html=True)
 
 st.markdown(
     """
 <style>
 html, body, [class*="css"] { font-family:"Meiryo","Yu Gothic",system-ui,sans-serif; color:#292929; }
 .block-container { max-width:1460px; padding-top:1.1rem; padding-bottom:4rem; }
+.portal-nav-spacer { height: .15rem; }
+.portal-breadcrumb {
+  color:#777;
+  font-size:.82rem;
+  padding-top:.68rem;
+  white-space:nowrap;
+}
 #MainMenu, footer { visibility:hidden; }
 .page-kicker { font-size:.78rem; font-weight:800; letter-spacing:.08em; color:#666; }
 .page-title { font-family:Georgia,"Yu Mincho",serif; font-size:2.35rem; font-weight:800; letter-spacing:-.02em; line-height:1.05; }
@@ -70,7 +78,21 @@ html, body, [class*="css"] { font-family:"Meiryo","Yu Gothic",system-ui,sans-ser
 .note-box { background:#f7f7f7; border:1px solid #ddd; padding:10px 13px; color:#666; font-size:.86rem; border-radius:5px; }
 .legend-row { display:flex; gap:18px; align-items:center; font-size:.82rem; color:#666; margin:.25rem 0 .5rem; }
 @media(max-width:800px) {
-  .block-container { padding-left:.7rem; padding-right:.7rem; }
+  .block-container {
+    padding-left:.7rem;
+    padding-right:.7rem;
+    padding-top:4.6rem !important;
+  }
+  .portal-nav-spacer { height:.15rem; }
+  .portal-breadcrumb {
+    padding-top:.35rem;
+    font-size:.76rem;
+    white-space:normal;
+    line-height:1.35;
+  }
+  div[data-testid="stHorizontalBlock"]:first-of-type {
+    gap:.35rem;
+  }
   .page-title { font-size:1.9rem; }
   .section-title { font-size:1.35rem; }
 }
