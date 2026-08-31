@@ -71,7 +71,7 @@ div[data-testid="stAppViewContainer"] { padding-top: 0 !important; }
 }
 .portal-card-live { border-top-color:#C93238; }
 .portal-card-history { border-top-color:#1675B9; }
-.portal-card-matrix { border-top-color:#222; }
+.portal-card-lean { border-top-color:#7C5AA6; }
 .portal-card-title {
     font-family:Georgia,"Yu Mincho",serif;
     font-size:1.65rem;
@@ -105,10 +105,10 @@ div[data-testid="stButton"] > button {
         unsafe_allow_html=True,
     )
 
-    st.markdown('<div class="portal-kicker">OKINAWA ELECTION PORTAL · v0.9.14 · NEW MAP</div>', unsafe_allow_html=True)
+    st.markdown('<div class="portal-kicker">OKINAWA ELECTION PORTAL · v0.9.13 · NEW MAP</div>', unsafe_allow_html=True)
     st.markdown('<div class="portal-title">沖縄選挙ポータル</div>', unsafe_allow_html=True)
     st.markdown(
-        '<div class="portal-deck">沖縄の選挙を、開票速報と過去の確定結果の2つの入口から見るためのポータルです。</div>',
+        '<div class="portal-deck">沖縄の選挙を、開票速報・過去の確定結果・41市町村の長期傾向の3つの入口から見るためのポータルです。</div>',
         unsafe_allow_html=True,
     )
     st.markdown('<div class="portal-rule"></div>', unsafe_allow_html=True)
@@ -148,20 +148,20 @@ div[data-testid="stButton"] > button {
     with c3:
         st.markdown(
             """
-<div class="portal-card portal-card-matrix">
-  <div class="portal-card-title">41市町村 保守寄り？革新より？</div>
+<div class="portal-card portal-card-lean">
+  <div class="portal-card-title">41市町村　保守寄り？革新寄り？</div>
   <div class="portal-card-copy">
-    知事選・参院選・衆院選をまたいで、市町村ごとの勝差を一覧表と地図で比較。
+    知事・参院・衆院選を横断し、市町村ごとの1位候補の系統と勝ち幅を時系列で比較。
   </div>
 </div>
 """,
             unsafe_allow_html=True,
         )
-        if st.button("一覧で比較する", key="home_matrix", use_container_width=True):
-            go("matrix")
+        if st.button("41市町村の傾向を見る", key="home_lean", use_container_width=True):
+            go("lean")
 
     st.markdown(
-        '<div class="portal-foot">Okinawa Election Portal — v0.9.14</div>',
+        '<div class="portal-foot">Okinawa Election Portal — v0.9.13</div>',
         unsafe_allow_html=True,
     )
 
@@ -173,8 +173,8 @@ elif page == "live":
     exec(compile((APP_DIR / "live_results.py").read_text(encoding="utf-8"), "live_results.py", "exec"))
 elif page == "history":
     exec(compile((APP_DIR / "historical_results.py").read_text(encoding="utf-8"), "historical_results.py", "exec"))
-elif page == "matrix":
-    exec(compile((APP_DIR / "matrix_results.py").read_text(encoding="utf-8"), "matrix_results.py", "exec"))
+elif page == "lean":
+    exec(compile((APP_DIR / "municipal_lean.py").read_text(encoding="utf-8"), "municipal_lean.py", "exec"))
 else:
     st.session_state["portal_page"] = "home"
     st.rerun()

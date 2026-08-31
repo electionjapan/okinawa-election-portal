@@ -1,0 +1,146 @@
+[
+  {
+    "election_id": "SEN2010",
+    "date_serial": 40370.0,
+    "date": "2010-07-11",
+    "year": 2010,
+    "type": "参院選",
+    "label": "2010 参院選",
+    "long_name": "第22回参議院議員通常選挙（沖縄県選挙区）"
+  },
+  {
+    "election_id": "GOV2010",
+    "date_serial": 40510.0,
+    "date": "2010-11-28",
+    "year": 2010,
+    "type": "知事選",
+    "label": "2010 知事選",
+    "long_name": "第11回沖縄県知事選挙"
+  },
+  {
+    "election_id": "HR2012",
+    "date_serial": 41259.0,
+    "date": "2012-12-16",
+    "year": 2012,
+    "type": "衆院選",
+    "label": "2012 衆院選",
+    "long_name": "2012年衆議院議員総選挙"
+  },
+  {
+    "election_id": "SEN2013",
+    "date_serial": 41476.0,
+    "date": "2013-07-21",
+    "year": 2013,
+    "type": "参院選",
+    "label": "2013 参院選",
+    "long_name": "第23回参議院議員通常選挙（沖縄県選挙区）"
+  },
+  {
+    "election_id": "GOV2014",
+    "date_serial": 41959.0,
+    "date": "2014-11-16",
+    "year": 2014,
+    "type": "知事選",
+    "label": "2014 知事選",
+    "long_name": "第12回沖縄県知事選挙"
+  },
+  {
+    "election_id": "HR2014",
+    "date_serial": 41987.0,
+    "date": "2014-12-14",
+    "year": 2014,
+    "type": "衆院選",
+    "label": "2014 衆院選",
+    "long_name": "2014年衆議院議員総選挙"
+  },
+  {
+    "election_id": "SEN2016",
+    "date_serial": 42561.0,
+    "date": "2016-07-10",
+    "year": 2016,
+    "type": "参院選",
+    "label": "2016 参院選",
+    "long_name": "第24回参議院議員通常選挙（沖縄県選挙区）"
+  },
+  {
+    "election_id": "HR2017",
+    "date_serial": 43030.0,
+    "date": "2017-10-22",
+    "year": 2017,
+    "type": "衆院選",
+    "label": "2017 衆院選",
+    "long_name": "2017年衆議院議員総選挙"
+  },
+  {
+    "election_id": "GOV2018",
+    "date_serial": 43373.0,
+    "date": "2018-09-30",
+    "year": 2018,
+    "type": "知事選",
+    "label": "2018 知事選",
+    "long_name": "第13回沖縄県知事選挙"
+  },
+  {
+    "election_id": "SEN2019",
+    "date_serial": 43667.0,
+    "date": "2019-07-21",
+    "year": 2019,
+    "type": "参院選",
+    "label": "2019 参院選",
+    "long_name": "第25回参議院議員通常選挙（沖縄県選挙区）"
+  },
+  {
+    "election_id": "HR2021",
+    "date_serial": 44500.0,
+    "date": "2021-10-31",
+    "year": 2021,
+    "type": "衆院選",
+    "label": "2021 衆院選",
+    "long_name": "2021年衆議院議員総選挙"
+  },
+  {
+    "election_id": "SEN2022",
+    "date_serial": 44752.0,
+    "date": "2022-07-10",
+    "year": 2022,
+    "type": "参院選",
+    "label": "2022 参院選",
+    "long_name": "第26回参議院議員通常選挙（沖縄県選挙区）"
+  },
+  {
+    "election_id": "GOV2022",
+    "date_serial": 44815.0,
+    "date": "2022-09-11",
+    "year": 2022,
+    "type": "知事選",
+    "label": "2022 知事選",
+    "long_name": "第14回沖縄県知事選挙"
+  },
+  {
+    "election_id": "HR2024",
+    "date_serial": 45592.0,
+    "date": "2024-10-27",
+    "year": 2024,
+    "type": "衆院選",
+    "label": "2024 衆院選",
+    "long_name": "2024年衆議院議員総選挙"
+  },
+  {
+    "election_id": "SEN2025",
+    "date_serial": 45858.0,
+    "date": "2025-07-20",
+    "year": 2025,
+    "type": "参院選",
+    "label": "2025 参院選",
+    "long_name": "第27回参議院議員通常選挙（沖縄県選挙区）"
+  },
+  {
+    "election_id": "HR2026",
+    "date_serial": 46061.0,
+    "date": "2026-02-08",
+    "year": 2026,
+    "type": "衆院選",
+    "label": "2026 衆院選",
+    "long_name": "2026年衆議院議員総選挙"
+  }
+]
