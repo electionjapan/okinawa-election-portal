@@ -46,13 +46,13 @@ with nav_back:
         st.rerun()
 with nav_label:
     st.markdown('<div class="portal-breadcrumb">沖縄選挙ポータル / 過去の選挙結果</div>', unsafe_allow_html=True)
-st.caption("v0.9.9 · NEW MAP · 模式配置")
+st.caption("v0.9.10 · NEW MAP · 模式配置")
 
 st.markdown(
     """
 <style>
 html, body, [class*="css"] { font-family:"Meiryo","Yu Gothic",system-ui,sans-serif; color:#292929; }
-.block-container { max-width:1460px; padding-top:1.1rem; padding-bottom:4rem; }
+.block-container { max-width:1460px; padding-top:.6rem; padding-bottom:4rem; }
 .portal-nav-spacer { height: .15rem; }
 .portal-breadcrumb {
   color:#777;
@@ -60,7 +60,15 @@ html, body, [class*="css"] { font-family:"Meiryo","Yu Gothic",system-ui,sans-ser
   padding-top:.68rem;
   white-space:nowrap;
 }
-#MainMenu, footer { visibility:hidden; }
+#MainMenu, footer, header[data-testid="stHeader"] { display: none !important; }
+div[data-testid="stAppViewContainer"] { padding-top: 0 !important; }
+div[data-testid="stHorizontalBlock"]:has(div[data-testid="stButton"]) {
+  position: sticky;
+  top: 0;
+  z-index: 999;
+  background: #fff;
+  padding-bottom: .3rem;
+}
 .page-kicker { font-size:.78rem; font-weight:800; letter-spacing:.08em; color:#666; }
 .page-title { font-family:Georgia,"Yu Mincho",serif; font-size:2.35rem; font-weight:800; letter-spacing:-.02em; line-height:1.05; }
 .deck { color:#6B6B6B; font-size:.94rem; margin-top:.35rem; }
@@ -79,11 +87,14 @@ html, body, [class*="css"] { font-family:"Meiryo","Yu Gothic",system-ui,sans-ser
 .stat-strip strong { color:#333; }
 .note-box { background:#f7f7f7; border:1px solid #ddd; padding:10px 13px; color:#666; font-size:.86rem; border-radius:5px; }
 .legend-row { display:flex; gap:18px; align-items:center; font-size:.82rem; color:#666; margin:.25rem 0 .5rem; }
+.js-plotly-plot, .js-plotly-plot .plot-container, .js-plotly-plot .svg-container {
+  touch-action: pan-y pinch-zoom !important;
+}
 @media(max-width:800px) {
   .block-container {
     padding-left:.7rem;
     padding-right:.7rem;
-    padding-top:4.6rem !important;
+    padding-top:.6rem !important;
   }
   .portal-nav-spacer { height:.15rem; }
   .portal-breadcrumb {
@@ -103,18 +114,20 @@ html, body, [class*="css"] { font-family:"Meiryo","Yu Gothic",system-ui,sans-ser
     unsafe_allow_html=True,
 )
 
+@st.cache_data
 def load_json(name):
     with open(DATA_DIR / name, encoding="utf-8") as f:
         return json.load(f)
 
+@st.cache_data
 def load_all():
     return (
         pd.DataFrame(load_json("statewide_results.json")),
         pd.DataFrame(load_json("elections.json")),
         pd.DataFrame(load_json("turnout.json")),
         pd.DataFrame(load_json("municipalities.json")),
-        load_json("map_layout_v098.geojson"),
-        load_json("map_layout_v098.json"),
+        load_json("map_layout_v0910.geojson"),
+        load_json("map_layout_v0910.json"),
     )
 
 def serial_to_date(v):

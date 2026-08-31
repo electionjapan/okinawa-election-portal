@@ -52,13 +52,13 @@ with nav_back:
         st.rerun()
 with nav_label:
     st.markdown('<div class="portal-breadcrumb">沖縄選挙ポータル / 開票速報</div>', unsafe_allow_html=True)
-st.caption("v0.9.9 · NEW MAP · 模式配置")
+st.caption("v0.9.10 · NEW MAP · 模式配置")
 
 st.markdown(
     """
 <style>
 html, body, [class*="css"] { font-family: "Meiryo", "Yu Gothic", system-ui, sans-serif; color:#292929; }
-.block-container { max-width: 1460px; padding-top: 1.1rem; padding-bottom: 4rem; }
+.block-container { max-width: 1460px; padding-top: .6rem; padding-bottom: 4rem; }
 .portal-nav-spacer { height: .15rem; }
 .portal-breadcrumb {
   color:#777;
@@ -66,7 +66,15 @@ html, body, [class*="css"] { font-family: "Meiryo", "Yu Gothic", system-ui, sans
   padding-top:.68rem;
   white-space:nowrap;
 }
-#MainMenu, footer { visibility: hidden; }
+#MainMenu, footer, header[data-testid="stHeader"] { display: none !important; }
+div[data-testid="stAppViewContainer"] { padding-top: 0 !important; }
+div[data-testid="stHorizontalBlock"]:has(div[data-testid="stButton"]) {
+  position: sticky;
+  top: 0;
+  z-index: 999;
+  background: #fff;
+  padding-bottom: .3rem;
+}
 .nyt-title { font-family: Georgia, "Yu Mincho", serif; font-weight: 800; letter-spacing:-0.02em; line-height:1.05; }
 .live-badge { display:inline-block; padding:3px 8px; border-radius:4px; color:white; background:#C93238; font-size:.75rem; font-weight:800; margin-right:8px; }
 .demo-badge { display:inline-block; padding:3px 8px; border-radius:4px; color:#5a4700; background:#fff0a8; font-size:.75rem; font-weight:800; }
@@ -95,11 +103,14 @@ html, body, [class*="css"] { font-family: "Meiryo", "Yu Gothic", system-ui, sans
 .map-caption { font-size:.82rem; color:#666; margin-top:-5px; margin-bottom:4px; }
 .note-box { background:#f7f7f7; border:1px solid #ddd; padding:10px 13px; font-size:.86rem; color:#666; border-radius:5px; }
 .legend-row { display:flex; gap:18px; align-items:center; font-size:.82rem; color:#666; margin:.2rem 0 .5rem; }
+.js-plotly-plot, .js-plotly-plot .plot-container, .js-plotly-plot .svg-container {
+  touch-action: pan-y pinch-zoom !important;
+}
 @media (max-width: 800px) {
   .block-container {
     padding-left:.7rem;
     padding-right:.7rem;
-    padding-top:4.6rem !important;
+    padding-top:.6rem !important;
   }
   .portal-nav-spacer { height:.15rem; }
   .portal-breadcrumb {
@@ -119,17 +130,19 @@ html, body, [class*="css"] { font-family: "Meiryo", "Yu Gothic", system-ui, sans
     unsafe_allow_html=True,
 )
 
+@st.cache_data
 def load_json(name):
     with open(DATA_DIR / name, encoding="utf-8") as f:
         return json.load(f)
 
+@st.cache_data
 def load_all():
     results = pd.DataFrame(load_json("statewide_results.json"))
     elections = pd.DataFrame(load_json("elections.json"))
     turnout = pd.DataFrame(load_json("turnout.json"))
     municipalities = pd.DataFrame(load_json("municipalities.json"))
-    geojson = load_json("map_layout_v098.geojson")
-    layout_boxes = load_json("map_layout_v098.json")
+    geojson = load_json("map_layout_v0910.geojson")
+    layout_boxes = load_json("map_layout_v0910.json")
     return results, elections, turnout, municipalities, geojson, layout_boxes
 
 def serial_to_date(v):
