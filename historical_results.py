@@ -28,12 +28,13 @@ ATTR_COLOR = {
     "革新分裂候補": GRAY,
 }
 
-MAP_GROUPS = [
-    {"key": "main", "label": "本島・周辺離島", "groups": ["本島・近隣", "西部離島"]},
-    {"key": "southwest", "label": "宮古・八重山", "groups": ["宮古", "八重山"]},
-    {"key": "daito", "label": "大東", "groups": ["大東"]},
-]
-
+PLOT_CONFIG = {
+    "scrollZoom": True,
+    "doubleClick": "reset+autosize",
+    "displaylogo": False,
+    "responsive": True,
+    "modeBarButtonsToRemove": ["select2d", "lasso2d"],
+}
 
 
 # Portal navigation
@@ -45,6 +46,7 @@ with nav_back:
         st.rerun()
 with nav_label:
     st.markdown('<div class="portal-breadcrumb">沖縄選挙ポータル / 過去の選挙結果</div>', unsafe_allow_html=True)
+st.caption("v0.9.7 · NEW MAP · 模式配置")
 
 st.markdown(
     """
@@ -101,19 +103,18 @@ html, body, [class*="css"] { font-family:"Meiryo","Yu Gothic",system-ui,sans-ser
     unsafe_allow_html=True,
 )
 
-@st.cache_data
 def load_json(name):
     with open(DATA_DIR / name, encoding="utf-8") as f:
         return json.load(f)
 
-@st.cache_data
 def load_all():
     return (
         pd.DataFrame(load_json("statewide_results.json")),
         pd.DataFrame(load_json("elections.json")),
         pd.DataFrame(load_json("turnout.json")),
         pd.DataFrame(load_json("municipalities.json")),
-        load_json("okinawa_municipalities_display_desktop_boxed.geojson"),
+        load_json("map_layout_v097.geojson"),
+        load_json("map_layout_v097.json"),
     )
 
 def serial_to_date(v):
@@ -195,8 +196,8 @@ def _finish_map(fig, geojson, height):
     minx,maxx,miny,maxy = _bounds(geojson)
     dx = max(maxx-minx, 1e-6)
     dy = max(maxy-miny, 1e-6)
-    fig.update_xaxes(range=[minx-dx*.06,maxx+dx*.06], visible=False, fixedrange=False, constrain="domain")
-    fig.update_yaxes(range=[miny-dy*.06,maxy+dy*.06], visible=False, fixedrange=False, scaleanchor="x", scaleratio=1)
+    fig.update_xaxes(range=[minx-dx*.025,maxx+dx*.025], visible=False, fixedrange=False, constrain="domain")
+    fig.update_yaxes(range=[miny-dy*.025,maxy+dy*.025], visible=False, fixedrange=False, scaleanchor="x", scaleratio=1)
     fig.update_layout(
         height=height,
         margin=dict(l=0,r=0,t=0,b=0),
@@ -343,25 +344,39 @@ def turnout_map_panel(geojson, summary, height=420):
         ))
     return _finish_map(fig,geojson,height)
 
-def render_three_panel(panel_fn, geojson, main_height, inset_height, key_prefix, *args, **kwargs):
-    main_geo = subset_geojson_many(geojson,MAP_GROUPS[0]["groups"])
-    st.plotly_chart(
-        panel_fn(main_geo,*args,height=main_height,**kwargs),
-        use_container_width=True,
-        config={"scrollZoom":True,"displaylogo":False,"modeBarButtonsToRemove":["select2d","lasso2d"]},
-        key=f"{key_prefix}-main",
-    )
-    c1,c2=st.columns(2,gap="small")
-    for col,spec in zip([c1,c2],MAP_GROUPS[1:]):
-        with col:
-            st.markdown(f"**{spec['label']}**")
-            sub=subset_geojson_many(geojson,spec["groups"])
-            st.plotly_chart(
-                panel_fn(sub,*args,height=inset_height,**kwargs),
-                use_container_width=True,
-                config={"scrollZoom":True,"displaylogo":False,"modeBarButtonsToRemove":["select2d","lasso2d"]},
-                key=f"{key_prefix}-{spec['key']}",
+def add_layout_boxes(fig, layout_boxes):
+    boxes = layout_boxes.get("boxes", {})
+    labels = layout_boxes.get("labels", {})
+    for key, box in boxes.items():
+        if key == "本島":
+            continue
+        x0, y0, x1, y1 = [float(v) for v in box]
+        fig.add_shape(
+            type="rect", x0=x0, y0=y0, x1=x1, y1=y1,
+            line=dict(color="#D8D8D8", width=1.0),
+            fillcolor="rgba(255,255,255,0)",
+            layer="below",
+        )
+        label = labels.get(key)
+        if label:
+            fig.add_annotation(
+                x=x0 + 1.0, y=y1 - 0.9,
+                text=f"<b>{label}</b>", showarrow=False,
+                xanchor="left", yanchor="top",
+                font=dict(size=12, color="#666666", family="Meiryo, Yu Gothic, sans-serif"),
+                bgcolor="rgba(255,255,255,0.88)", borderpad=2,
             )
+    return fig
+
+def render_boxed_map(panel_fn, geojson, layout_boxes, height, key_prefix, *args, **kwargs):
+    fig = panel_fn(geojson, *args, height=height, **kwargs)
+    fig = add_layout_boxes(fig, layout_boxes)
+    st.plotly_chart(
+        fig,
+        use_container_width=True,
+        config=PLOT_CONFIG,
+        key=f"{key_prefix}-boxed",
+    )
 
 def two_bloc_margin(results,election_id):
     d=results[results["election_id"]==election_id].copy()
@@ -440,7 +455,7 @@ def render_candidate_totals(totals):
     return "\n".join(html)
 
 # ---------------- data ----------------
-results,elections,turnout,municipalities,geojson=load_all()
+results,elections,turnout,municipalities,geojson,layout_boxes=load_all()
 elections=elections.sort_values("date_serial",ascending=False).copy()
 elections["short_label"]=elections.apply(short_label,axis=1)
 elections["full_label"]=elections.apply(full_label,axis=1)
@@ -495,14 +510,14 @@ with right:
     map_mode=st.radio("表示",modes,horizontal=True,label_visibility="collapsed")
     global_max_lead=max(float(summary["lead_votes"].max()),1.0)
     if map_mode=="得票シェア":
-        render_three_panel(winner_map_panel,geojson,510,235,"hist-share",summary,d)
-        st.caption("濃い赤・濃い青ほど勝者のリード幅が大きく、同数はグレー。")
+        render_boxed_map(winner_map_panel,geojson,layout_boxes,600,"hist-share",summary,d)
+        st.caption("本島を中央、周辺離島を外周の枠へ配置した模式図。濃い赤・濃い青ほど勝者のリード幅が大きく、同数はグレー。1本指で移動、2本指で拡大・縮小できます。")
     elif map_mode=="リード票":
-        render_three_panel(lead_bubble_panel,geojson,420,205,"hist-lead",summary,global_max_lead=global_max_lead)
-        st.caption("円の大きさ＝1位と2位の票差。本島・離島で同じサイズ基準。")
+        render_boxed_map(lead_bubble_panel,geojson,layout_boxes,510,"hist-lead",summary,global_max_lead=global_max_lead)
+        st.caption("円の大きさ＝1位と2位の票差。本島・離島で同じサイズ基準。1本指で移動、2本指で拡大・縮小できます。")
     else:
-        render_three_panel(turnout_map_panel,geojson,420,205,"hist-turnout",summary)
-        st.caption("投票率データがDBにある選挙のみ表示します。")
+        render_boxed_map(turnout_map_panel,geojson,layout_boxes,510,"hist-turnout",summary)
+        st.caption("投票率データがDBにある選挙のみ表示します。1本指で移動、2本指で拡大・縮小できます。")
 
 # ---------------- municipality table ----------------
 st.markdown('<div class="section-title">市町村別結果</div>',unsafe_allow_html=True)
@@ -565,7 +580,7 @@ st.markdown(
 
 comp_left,comp_right=st.columns([1.1,1.0],gap="large")
 with comp_left:
-    render_three_panel(shift_map_panel,geojson,400,200,"history-shift",swing,global_max_shift)
+    render_boxed_map(shift_map_panel,geojson,layout_boxes,510,"history-shift",swing,global_max_shift)
     st.markdown(
         f'<div class="legend-row"><span style="color:{RED};font-weight:800;">→ 保守方向</span>'
         f'<span style="color:{BLUE};font-weight:800;">← オール沖縄方向</span>'

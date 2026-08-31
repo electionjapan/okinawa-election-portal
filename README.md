@@ -1,55 +1,19 @@
-# 沖縄選挙ポータル v0.9
+# 沖縄選挙ポータル v0.9.7 — GitHubアップロード用
 
-トップページから2つのページへ移動する統合版です。
+このフォルダは Streamlit Community Cloud 用の最小構成です。
 
-## トップページ
-- 開票速報を見る
-- 過去の選挙結果を見る
+## 更新方法
+1. このフォルダの中身をすべて選択
+2. GitHub の `electionjapan/okinawa-election-portal` で **Add file → Upload files**
+3. 同名ファイルは上書きされます
+4. Commit changes
+5. Streamlit Community Cloud の再読み込みを待つ
 
-各ページ上部の「← トップへ」で入口へ戻れます。
+## 反映確認
+トップページ上部に **v0.9.7 · NEW MAP** と出れば新版です。
+開票速報・過去の選挙結果にも **v0.9.7 · NEW MAP · 模式配置** と表示されます。
 
-## 開票速報
-v0.7 を統合。
-- 全県集計
-- 得票シェア / リード票 / 推定残票
-- 本島・周辺離島 / 宮古・八重山 / 大東
-- 市町村一覧
-- 過去選挙との保革マージン変化
-
-## 過去の選挙結果
-v0.8.1 系のStreamlit画面を統合。
-- 表示する選挙を切替
-- 全県候補者集計
-- 市町村別結果地図
-- リード票
-- 投票率（収録選挙のみ）
-- 市町村一覧
-- 比較対象の選挙を独立選択して保革マージン比較
-
-## 起動
-```bash
-pip install -r requirements.txt
-streamlit run app.py
-```
-
-
-## v0.9.2 完全統合版
-
-このZIPは、以下をすべて1つにまとめた配布用パッケージです。
-
-### Streamlit本体
-- app.py
-- live_results.py
-- historical_results.py
-- requirements.txt
-- data/
-- run_portal.bat
-
-### HTML確認サイト
-- preview_site/index.html
-- preview_site/live.html
-- preview_site/history.html
-- preview_site/README.txt
-
-HTMLだけ確認する場合は `preview_site/index.html` を開いてください。
-Streamlitで動かす場合はルートの `app.py` を起動してください。
+## 地図について
+アプリが読む表示用地図は `data/map_layout_v097.geojson` だけです。
+旧レイアウトGeoJSONはこの配布物に含めていません。
+`st.cache_data` もデータ読込から外し、旧地図キャッシュを避けています。
