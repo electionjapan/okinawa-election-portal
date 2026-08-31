@@ -1,100 +1,66 @@
-{
-  "version": "v0.9.13",
-  "file_count": 16,
-  "data_summary": {
-    "elections": 16,
-    "municipalities": 41,
-    "winner_cells": 656,
-    "election_types": [
-      "知事選",
-      "参院選",
-      "衆院選"
-    ],
-    "years": [
-      2010,
-      2026
-    ]
+[
+  {
+    "path": "README.md",
+    "size_bytes": 8752
   },
-  "files": [
-    {
-      "path": "README.md",
-      "size_bytes": 5688,
-      "sha256": "a8eb7709c31381a3b13c8c3768d5f10dc75f05d452346ed5add1edc683817760"
-    },
-    {
-      "path": "app.py",
-      "size_bytes": 5106,
-      "sha256": "03d70641072b809d337ca5a61793f3c4400b6646da8435dd1e9c420390193431"
-    },
-    {
-      "path": "data/comparison_elections.json",
-      "size_bytes": 3644,
-      "sha256": "9b58863fad139c76bc11cccf5334d600603e11aacc551d38dc469a03e35a1a61"
-    },
-    {
-      "path": "data/elections.json",
-      "size_bytes": 1756,
-      "sha256": "31b5a72fe7de3edade2862bcabab9377e301251c70071207139f88604a0826c2"
-    },
-    {
-      "path": "data/house_district_boundaries_v0913.geojson",
-      "size_bytes": 5657,
-      "sha256": "a1df0a51032f7becde7a64c378010cb07e8988c9fdc78992c9a76eb1a0583010"
-    },
-    {
-      "path": "data/house_district_labels_v0913.json",
-      "size_bytes": 559,
-      "sha256": "9efefc71382e5eb8daa6536c3a4ab5fecf2e6a046b55cdf2d3af70848939311c"
-    },
-    {
-      "path": "data/map_layout_v0912.geojson",
-      "size_bytes": 254453,
-      "sha256": "e051a29e318be5674d4ae5f7383b812840f502d2424a50e138af544bceb01540"
-    },
-    {
-      "path": "data/map_layout_v0912.json",
-      "size_bytes": 1908,
-      "sha256": "7fc7a0c2fa81910ab5f3650fad5358877dc3c229f654e3da43a27a4277837cfd"
-    },
-    {
-      "path": "data/municipal_winners.json",
-      "size_bytes": 351634,
-      "sha256": "e92d1be623987e797aca2d320e6a25760149c364ac5c9c6a9088066143c6ebeb"
-    },
-    {
-      "path": "data/municipalities.json",
-      "size_bytes": 12250,
-      "sha256": "bc78e670b98a42efa9e0b3583bd893cac9fa1ca237c1c3465577e65dcb20c475"
-    },
-    {
-      "path": "data/statewide_results.json",
-      "size_bytes": 411424,
-      "sha256": "e41722fe59929247b57d9365ae19ebc0fd0c89376201d815f693b5036ab269b5"
-    },
-    {
-      "path": "data/turnout.json",
-      "size_bytes": 11655,
-      "sha256": "37ea0e5ff2456ab7d3d9fa22cf801da77da9096f0341904294fd8b93931f19e7"
-    },
-    {
-      "path": "historical_results.py",
-      "size_bytes": 29275,
-      "sha256": "fe6fd5e0f280c5422b7b843ce704f70948e7bb09b122a320e3618259eff84793"
-    },
-    {
-      "path": "live_results.py",
-      "size_bytes": 40145,
-      "sha256": "33fa596ac5ce309cc9b8e170397456a0b8ab01bcd02173e8899e88552181e6f3"
-    },
-    {
-      "path": "municipal_lean.py",
-      "size_bytes": 16829,
-      "sha256": "75836bf25ee58ccedfa04155d9259c4799152b2836284421bd0b48c63faca22c"
-    },
-    {
-      "path": "requirements.txt",
-      "size_bytes": 41,
-      "sha256": "ca5dfc6a3aa5e30e150e86875368db9b2352f53791fbab4d6d8813525eccdb3a"
-    }
-  ]
-}
+  {
+    "path": "app.py",
+    "size_bytes": 5067
+  },
+  {
+    "path": "data/elections.json",
+    "size_bytes": 1756
+  },
+  {
+    "path": "data/map_layout_v0912.geojson",
+    "size_bytes": 254453
+  },
+  {
+    "path": "data/map_layout_v0912.json",
+    "size_bytes": 1908
+  },
+  {
+    "path": "data/matrix_elections.json",
+    "size_bytes": 2166
+  },
+  {
+    "path": "data/matrix_municipalities.json",
+    "size_bytes": 6512
+  },
+  {
+    "path": "data/matrix_prefecture.json",
+    "size_bytes": 9013
+  },
+  {
+    "path": "data/matrix_winners.json",
+    "size_bytes": 174515
+  },
+  {
+    "path": "data/municipalities.json",
+    "size_bytes": 11626
+  },
+  {
+    "path": "data/statewide_results.json",
+    "size_bytes": 411424
+  },
+  {
+    "path": "data/turnout.json",
+    "size_bytes": 11655
+  },
+  {
+    "path": "historical_results.py",
+    "size_bytes": 30881
+  },
+  {
+    "path": "live_results.py",
+    "size_bytes": 41430
+  },
+  {
+    "path": "matrix_results.py",
+    "size_bytes": 20573
+  },
+  {
+    "path": "requirements.txt",
+    "size_bytes": 41
+  }
+]

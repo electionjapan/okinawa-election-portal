@@ -11,6 +11,8 @@ DATA_DIR = APP_DIR / "data"
 
 RED = "#C93238"
 BLUE = "#1675B9"
+RED_LIGHT = "#F4DBDD"
+BLUE_LIGHT = "#DDEAF6"
 GRAY = "#8E8E8E"
 GRAY_LIGHT = "#EFEFEF"
 TEXT = "#292929"
@@ -65,7 +67,7 @@ div[data-testid="stHorizontalBlock"]:has(div[data-testid="stButton"]) {
 .section-deck { color:#6B6B6B; font-size:.92rem; margin-bottom:.6rem; }
 .legend-row { display:flex; gap:16px; align-items:center; font-size:.8rem; color:#666; margin:.3rem 0 .6rem; flex-wrap:wrap; }
 .legend-dot { display:inline-block; width:11px; height:11px; border-radius:50%; margin-right:5px; vertical-align:middle; }
-.legend-line { display:inline-block; width:18px; height:3px; margin-right:5px; vertical-align:middle; }
+.legend-line { display:inline-flex; align-items:center; justify-content:center; width:16px; height:16px; border-radius:50%; margin-right:5px; vertical-align:middle; color:#fff; font-size:.68rem; font-weight:800; }
 .js-plotly-plot, .js-plotly-plot .plot-container, .js-plotly-plot .svg-container,
 .js-plotly-plot .nsewdrag, .js-plotly-plot svg { touch-action:none !important; }
 .js-plotly-plot .modebar { transform:scale(1.35); transform-origin:top right; }
@@ -77,6 +79,8 @@ table.matrix-table td { padding:5px 9px; border-bottom:1px solid #eee; }
 table.matrix-table td.meta { color:#555; font-size:.78rem; background:#fafafa; }
 table.matrix-table td.cell { color:#fff; font-weight:700; text-align:center; }
 table.matrix-table tr:hover td { filter:brightness(0.94); }
+tr.pref-row td { position:sticky; top:26px; z-index:1; border-bottom:2px solid #222; background:#fafafa; }
+tr.pref-row td.meta { background:#f2f2f2; }
 @media(max-width:800px) {
   .block-container { padding-left:.7rem; padding-right:.7rem; padding-top:.6rem !important; }
   .page-title { font-size:1.6rem; }
@@ -95,7 +99,7 @@ with nav_back:
 with nav_label:
     st.markdown('<div class="portal-breadcrumb">沖縄選挙ポータル ／ 41市町村 保守寄り？革新より？</div>', unsafe_allow_html=True)
 st.markdown('<div class="portal-nav-spacer"></div>', unsafe_allow_html=True)
-st.caption("v0.9.14 · NEW MAP · 模式配置")
+st.caption("v0.9.16 · NEW MAP · 模式配置")
 
 st.markdown('<div class="page-kicker">OKINAWA ELECTION MATRIX</div>', unsafe_allow_html=True)
 st.markdown('<div class="page-title">41市町村　保守寄り？革新より？</div>', unsafe_allow_html=True)
@@ -118,9 +122,10 @@ def load_all():
     municipalities = pd.DataFrame(load_json("matrix_municipalities.json"))
     geojson = load_json("map_layout_v0912.geojson")
     layout_boxes = load_json("map_layout_v0912.json")
-    return winners, elections, municipalities, geojson, layout_boxes
+    prefecture = {r["election_id"]: r for r in load_json("matrix_prefecture.json")}
+    return winners, elections, municipalities, geojson, layout_boxes, prefecture
 
-winners, elections, municipalities, geojson, layout_boxes = load_all()
+winners, elections, municipalities, geojson, layout_boxes, prefecture = load_all()
 elections = elections.sort_values(["year", "race_type"]).reset_index(drop=True)
 
 def blend(c1, c2, t):
@@ -131,10 +136,15 @@ def blend(c1, c2, t):
     r = round(r1 + (r2 - r1) * t); g = round(g1 + (g2 - g1) * t); b = round(b1 + (b2 - b1) * t)
     return f"#{r:02x}{g:02x}{b:02x}"
 
-def cell_color(attr, margin_pt):
-    base = ATTR_COLOR.get(attr, GRAY)
-    t = min(abs(float(margin_pt)) / 45.0, 1.0)
-    return blend(GRAY, base, 0.35 + 0.65 * t)
+def cell_color(attribute, margin_pt):
+    if attribute == "同数" or abs(float(margin_pt)) < 1e-9:
+        return "#BDBDBD"
+    t = min(abs(float(margin_pt)) / 25.0, 1.0)
+    if attribute == "保守系":
+        return blend(RED_LIGHT, RED, t)
+    if attribute in BLUE_BLOC_ATTRS:
+        return blend(BLUE_LIGHT, BLUE, t)
+    return "#E3E3E3"
 
 def _geometry_xy(geometry):
     xs, ys = [], []
@@ -201,9 +211,28 @@ def apply_zoom(fig, zoom):
 
 muni_district = dict(zip(municipalities["municipality_name"], municipalities["hr_district"]))
 
+DISTRICT_NUM = {"沖縄県第1区": "1", "沖縄県第2区": "2", "沖縄県第3区": "3", "沖縄県第4区": "4"}
+
+def _polygon_centroid(geometry):
+    gtype = geometry.get("type")
+    coords = geometry.get("coordinates", [])
+    polys = [coords] if gtype == "Polygon" else coords
+    best = None
+    for poly in polys:
+        ring = poly[0]
+        xs = [p[0] for p in ring]; ys = [p[1] for p in ring]
+        area = 0.0
+        for i in range(len(ring) - 1):
+            area += xs[i] * ys[i+1] - xs[i+1] * ys[i]
+        area = abs(area) / 2
+        if best is None or area > best[0]:
+            best = (area, sum(xs) / len(xs), sum(ys) / len(ys))
+    return (best[1], best[2]) if best else (0, 0)
+
 def matrix_map_panel(gj, wsub, race_type, height=560):
     by_name = {r["municipality_name"]: r for _, r in wsub.iterrows()}
     fig = go.Figure()
+    mk_x, mk_y, mk_color, mk_text = [], [], [], []
     for feature in gj["features"]:
         name = feature["properties"]["municipality_name"]
         r = by_name.get(name)
@@ -211,22 +240,28 @@ def matrix_map_panel(gj, wsub, race_type, height=560):
         if r is None:
             fill = "#EDEDED"
             hover = f"<b>{name}</b><br>データなし"
-            border_color, border_w = "white", 1.1
         else:
             fill = cell_color(r["winner_attr"], r["margin_pt"])
             hover = (f"<b>{name}</b><br>{r['winner_name']}　+{r['margin_pt']:.1f}pt"
                       f"（+{int(r['margin_votes']):,}票）")
-            if race_type == "HR":
-                dist = muni_district.get(name)
-                border_color = DISTRICT_COLORS.get(dist, "white")
-                border_w = 3.0
-            else:
-                border_color, border_w = "white", 1.1
         fig.add_trace(go.Scatter(
             x=xs, y=ys, mode="lines", fill="toself", fillcolor=fill,
-            line=dict(color=border_color, width=border_w),
+            line=dict(color="white", width=1.1),
             text=hover, hovertemplate="%{text}<extra></extra>",
             hoveron="fills", showlegend=False, name="",
+        ))
+        if race_type == "HR":
+            dist = muni_district.get(name)
+            cx, cy = _polygon_centroid(feature["geometry"])
+            mk_x.append(cx); mk_y.append(cy)
+            mk_color.append(DISTRICT_COLORS.get(dist, GRAY))
+            mk_text.append(DISTRICT_NUM.get(dist, "?"))
+    if race_type == "HR" and mk_x:
+        fig.add_trace(go.Scatter(
+            x=mk_x, y=mk_y, mode="markers+text",
+            marker=dict(size=15, color=mk_color, line=dict(color="white", width=1.2)),
+            text=mk_text, textfont=dict(size=9, color="white", family="Meiryo, Yu Gothic, sans-serif"),
+            hoverinfo="skip", showlegend=False, name="",
         ))
     return _finish_panel_map(fig, gj, height=height)
 
@@ -281,14 +316,15 @@ legend_html = (
 )
 if map_race_type == "HR":
     for dist, c in DISTRICT_COLORS.items():
-        legend_html += f'<span><span class="legend-line" style="background:{c};"></span>{dist}</span>'
+        n = DISTRICT_NUM.get(dist, "?")
+        legend_html += f'<span><span class="legend-line" style="background:{c};">{n}</span>{dist}</span>'
 legend_html += "</div>"
 st.markdown(legend_html, unsafe_allow_html=True)
-st.caption("1本指で移動。地図の上にあるスライダーで拡大・縮小できます。衆院選を選んだときは、市町村の枠線の色で小選挙区の区割りを示します。")
+st.caption("1本指で移動。地図の上にあるスライダーで拡大・縮小できます。衆院選を選んだときは、各市町村に色分けした番号マーカーを重ねて小選挙区の区割りを示します。")
 
 # ---------------- table ----------------
 st.markdown('<div class="section-title">市町村別一覧</div>', unsafe_allow_html=True)
-st.markdown('<div class="section-deck">左端は地域区分と衆院小選挙区。各セルは勝った陣営の候補者名(名字)・ポイント差・(得票差)です。</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-deck">左端は地域区分と衆院小選挙区。表の先頭「沖縄県全体」行は、その選挙で県全体では誰が何ポイント差(何票差)で勝ったか。「全体傾向」は選んだ選挙の中でその市町村がどちらの陣営に多く投票したかの通算です。各セルは勝った候補者名(名字)・ポイント差・(得票差)です。</div>', unsafe_allow_html=True)
 
 muni_order = municipalities.sort_values(["hr_district", "display_group", "municipality_name"])
 cols_eids = selected_elections["election_id"].tolist()
@@ -299,13 +335,72 @@ for eid in cols_eids:
     sub = winners[winners["election_id"] == eid].set_index("municipality_name")
     pivot[eid] = sub
 
-rows_html = []
+def camp_of(attr):
+    if attr == "保守系":
+        return "保守"
+    if attr in BLUE_BLOC_ATTRS:
+        return "オール沖縄・革新"
+    return "その他"
+
+def pref_cell_html(eid):
+    p = prefecture.get(eid)
+    if p is None:
+        return '<td class="cell" style="background:#EDEDED;color:#999;">―</td>'
+    if p["kind"] == "single":
+        color = cell_color(p["winner_attr"], p["margin_pt"])
+        text = f"{p['winner_surname']} +{p['margin_pt']:.1f}pt<br>（+{int(p['margin_votes']):,}票）"
+        return f'<td class="cell" style="background:{color};">{text}</td>'
+    # 衆院選: 4小選挙区の当選者と陣営別議席数
+    camp = p["seat_camp"]
+    top_camp = max(camp, key=camp.get)
+    tie = sum(1 for v in camp.values() if v == camp[top_camp]) > 1 and camp[top_camp] > 0
+    if tie or top_camp == "その他":
+        color = "#BDBDBD" if tie else "#E3E3E3"
+    else:
+        color = blend(RED_LIGHT, RED, 0.55) if top_camp == "保守" else blend(BLUE_LIGHT, BLUE, 0.55)
+    seat_line = f"保守{camp['保守']} オール沖縄{camp['オール沖縄・革新']}議席"
+    who_line = "　".join(f"{s['district'][-2:-1]}区:{s['winner_surname']}" for s in p["seats"])
+    text = f"{seat_line}<br>{who_line}"
+    return f'<td class="cell" style="background:{color};font-size:.74rem;">{text}</td>'
+
+pref_row_html = (
+    '<tr class="pref-row"><td class="meta"><b>―</b></td><td class="meta">―</td><td class="meta"><b>沖縄県全体</b></td>'
+    '<td class="cell" style="background:#222;color:#fff;">全県集計</td>'
+    + "".join(pref_cell_html(eid) for eid in cols_eids)
+    + "</tr>"
+)
+
+rows_html = [pref_row_html]
 for _, m in muni_order.iterrows():
     name = m["municipality_name"]
+
+    camp_wins = {"保守": 0, "オール沖縄・革新": 0, "その他": 0}
+    n_total = 0
+    for eid in cols_eids:
+        sub = pivot[eid]
+        if name in sub.index:
+            camp_wins[camp_of(sub.loc[name]["winner_attr"])] += 1
+            n_total += 1
+    if n_total == 0:
+        overall_html = '<td class="cell" style="background:#EDEDED;color:#999;">―</td>'
+    else:
+        top_camp = max(camp_wins, key=camp_wins.get)
+        top_n = camp_wins[top_camp]
+        tie = sum(1 for v in camp_wins.values() if v == top_n) > 1 and top_n > 0
+        if tie or top_camp == "その他":
+            overall_color = "#BDBDBD" if tie else "#E3E3E3"
+            overall_label = "拮抗" if tie else "その他"
+        else:
+            t = top_n / n_total
+            overall_color = blend(RED_LIGHT, RED, t) if top_camp == "保守" else blend(BLUE_LIGHT, BLUE, t)
+            overall_label = top_camp
+        overall_html = f'<td class="cell" style="background:{overall_color};">{overall_label}<br>{top_n}/{n_total}選挙</td>'
+
     tds = [
         f'<td class="meta">{m["display_group"]}</td>',
         f'<td class="meta">{m["hr_district"]}</td>',
         f'<td class="meta"><b>{name}</b></td>',
+        overall_html,
     ]
     for eid in cols_eids:
         sub = pivot[eid]
@@ -319,7 +414,7 @@ for _, m in muni_order.iterrows():
     rows_html.append(f"<tr>{''.join(tds)}</tr>")
 
 header = (
-    '<tr><th>地域区分</th><th>衆院小選挙区</th><th>市町村</th>'
+    '<tr><th>地域区分</th><th>衆院小選挙区</th><th>市町村</th><th>全体傾向</th>'
     + "".join(f"<th>{lbl}</th>" for lbl in cols_labels)
     + "</tr>"
 )
@@ -328,4 +423,4 @@ table_html = (
     + header + "".join(rows_html) + "</table></div>"
 )
 st.markdown(table_html, unsafe_allow_html=True)
-st.caption("政治属性が「保守系」「オール沖縄系」「革新系（2014年以前）」以外の候補(第三極・独立・無所属など)が勝った場合はグレー表示です。")
+st.caption("政治属性が「保守系」「オール沖縄系」「革新系（2014年以前）」以外の候補(第三極・独立・無所属など)が勝った場合はグレー表示です。「全体傾向」は選んだ選挙のうち、その市町村でどちらの陣営が多く勝ったかを示します(同数の場合は拮抗)。衆院選は4つの小選挙区で別々の当選者が出るため県全体で1人が勝つ形にはならず、「沖縄県全体」行では陣営別の獲得議席数と、各区の当選者(名字)を表示しています。")

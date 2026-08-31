@@ -53,7 +53,7 @@ with nav_back:
         st.rerun()
 with nav_label:
     st.markdown('<div class="portal-breadcrumb">沖縄選挙ポータル / 開票速報</div>', unsafe_allow_html=True)
-st.caption("v0.9.13 · NEW MAP · 模式配置")
+st.caption("v0.9.16 · NEW MAP · 模式配置")
 
 st.markdown(
     """
@@ -93,6 +93,17 @@ div[data-testid="stHorizontalBlock"]:has(div[data-testid="stButton"]) {
 .result-card { border-top:1px solid #DADADA; padding: 11px 2px 10px 2px; }
 .candidate-name { font-size:1.10rem; font-weight:700; }
 .candidate-party { color:#6B6B6B; font-size:.85rem; }
+.attr-badge {
+  display:inline-block;
+  color:#fff;
+  font-size:.72rem;
+  font-weight:700;
+  padding:.14rem .62rem;
+  border-radius:999px;
+  margin-left:.45rem;
+  vertical-align:middle;
+  letter-spacing:.02em;
+}
 .big-num { font-size:1.22rem; font-weight:750; text-align:right; }
 .pct-num { font-size:1.25rem; font-weight:800; text-align:right; }
 .progress-outer { height:7px; width:100%; background:#eee; margin-top:7px; }
@@ -201,6 +212,19 @@ def lead_fill_color(attribute, lead_points, reported_votes):
 
 def candidate_color(attribute):
     return ATTR_COLOR.get(attribute, "#8C8C8C")
+
+ATTR_BADGE_LABEL = {
+    "保守系": "保守系",
+    "オール沖縄系": "オール沖縄",
+    "革新系（2014年以前）": "革新",
+}
+
+def attribute_badge(attribute):
+    label = ATTR_BADGE_LABEL.get(attribute)
+    if not label:
+        return ""
+    color = RED if attribute == "保守系" else BLUE
+    return f'<span class="attr-badge" style="background:{color};">{label}</span>'
 
 def build_final_results(results, election_id):
     d = results[results["election_id"] == election_id].copy()
@@ -580,9 +604,22 @@ def add_layout_boxes(fig, layout_boxes):
             )
     return fig
 
+def apply_zoom(fig, zoom):
+    if zoom and zoom != 1.0:
+        xr = list(fig.layout.xaxis.range) if fig.layout.xaxis.range else None
+        yr = list(fig.layout.yaxis.range) if fig.layout.yaxis.range else None
+        if xr and yr:
+            cx, cy = (xr[0] + xr[1]) / 2, (yr[0] + yr[1]) / 2
+            hx, hy = (xr[1] - xr[0]) / 2 / zoom, (yr[1] - yr[0]) / 2 / zoom
+            fig.update_xaxes(range=[cx - hx, cx + hx])
+            fig.update_yaxes(range=[cy - hy, cy + hy])
+    return fig
+
 def render_boxed_map(panel_fn, geojson, layout_boxes, height, key_prefix, *args, **kwargs):
+    zoom_pct = st.slider("拡大", 100, 400, 100, step=20, key=f"{key_prefix}-zoom", format="%d%%")
     fig = panel_fn(geojson, *args, height=height, **kwargs)
     fig = add_layout_boxes(fig, layout_boxes)
+    fig = apply_zoom(fig, zoom_pct / 100.0)
     st.plotly_chart(
         fig,
         use_container_width=True,
@@ -598,7 +635,7 @@ def render_candidate_totals(totals):
         <div class="result-card" style="border-left:7px solid {color}; padding-left:12px;">
           <div style="display:grid;grid-template-columns:1.5fr .8fr .65fr;gap:10px;align-items:end;">
             <div>
-              <span class="candidate-name">{r['candidate_name']}</span><br>
+              <span class="candidate-name">{r['candidate_name']}</span>{attribute_badge(r['attribute'])}<br>
               <span class="candidate-party">{r['party'] or r['attribute']}</span>
             </div>
             <div class="big-num">{int(r['current_votes']):,}</div>
@@ -660,7 +697,7 @@ with st.sidebar:
 
     swing_threshold = st.select_slider("シフト表示の最低開票率", options=[50, 75, 90, 95, 100], value=50)
     sort_mode = st.selectbox("市町村一覧の並べ替え", ["得票規模", "開票率", "リード票", "接戦順", "残票"])
-    st.caption("地図は本島を中央、周辺離島を外周インセットへ再配置した沖縄県模式図です。1本指で移動、右上のアイコンで拡大・縮小できます。")
+    st.caption("地図は本島を中央、周辺離島を外周インセットへ再配置した沖縄県模式図です。1本指で移動。地図の上にあるスライダーで拡大・縮小できます。")
 
 current, msum, totals, overall_reporting = simulate_snapshot(results, municipalities, global_pct)
 compare_detail, swing = compare_context(results, turnout, current, msum, compare_id)
@@ -710,13 +747,13 @@ with right:
     remain_max = float(msum["remaining_votes"].max()) if len(msum) else 1
     if map_mode == "得票シェア":
         render_boxed_map(winner_map_panel, geojson, layout_boxes, 610, "winner", msum, current, compare_detail, compare_label)
-        st.markdown('<div class="map-caption">本島を中央、周辺離島を外周の枠へ配置した模式図。濃い赤・濃い青ほどリード幅が大きく、淡い色ほど接戦を示します。1本指で移動、右上のアイコンで拡大・縮小できます。</div>', unsafe_allow_html=True)
+        st.markdown('<div class="map-caption">本島を中央、周辺離島を外周の枠へ配置した模式図。濃い赤・濃い青ほどリード幅が大きく、淡い色ほど接戦を示します。1本指で移動。地図の上にあるスライダーで拡大・縮小できます。</div>', unsafe_allow_html=True)
     elif map_mode == "リード票":
         render_boxed_map(lead_bubble_panel, geojson, layout_boxes, 520, "lead", msum, max_value=lead_max)
-        st.markdown('<div class="map-caption">円の大きさ＝1位と2位の票差。本島・離島をまたいで同じサイズ基準を使います。1本指で移動、右上のアイコンで拡大・縮小できます。</div>', unsafe_allow_html=True)
+        st.markdown('<div class="map-caption">円の大きさ＝1位と2位の票差。本島・離島をまたいで同じサイズ基準を使います。1本指で移動。地図の上にあるスライダーで拡大・縮小できます。</div>', unsafe_allow_html=True)
     else:
         render_boxed_map(remaining_bubble_panel, geojson, layout_boxes, 520, "remain", msum, compare_detail, compare_label, max_value=remain_max)
-        st.markdown('<div class="map-caption">円の大きさ＝推定残票。ポップアップには投票率、前回選比、比較選挙の勝敗差も表示します。1本指で移動、右上のアイコンで拡大・縮小できます。</div>', unsafe_allow_html=True)
+        st.markdown('<div class="map-caption">円の大きさ＝推定残票。ポップアップには投票率、前回選比、比較選挙の勝敗差も表示します。1本指で移動。地図の上にあるスライダーで拡大・縮小できます。</div>', unsafe_allow_html=True)
 
 st.markdown('<div class="section-title">41市町村の開票状況</div>', unsafe_allow_html=True)
 st.markdown('<div class="section-deck">リードポイント、リード票、開票率、開票済み票、推定残票を一つの表で追います。</div>', unsafe_allow_html=True)
@@ -728,19 +765,15 @@ tbl["開票率"] = tbl["reporting_pct"]
 tbl["開票済み票"] = tbl["reported_votes"].astype(int)
 tbl["推定残票"] = tbl["remaining_votes"].astype(int)
 tbl["接戦度"] = tbl["lead_points"].abs()
+tbl = tbl.merge(swing[["municipality_code", "current_margin"]], on="municipality_code", how="left")
 if sort_mode == "得票規模":
     tbl = tbl.sort_values("final_valid_votes", ascending=False)
 elif sort_mode == "開票率":
     tbl = tbl.sort_values("開票率", ascending=False)
 elif sort_mode == "リード票":
-    leader_order = (
-        tbl[tbl["reported_votes"] > 0]
-        .groupby("leader_name")["lead_votes"].sum()
-        .sort_values(ascending=False).index.tolist()
-    )
-    leader_order += [n for n in tbl["leader_name"].unique() if n not in leader_order]
-    tbl["_leader_order"] = pd.Categorical(tbl["leader_name"], categories=leader_order, ordered=True)
-    tbl = tbl.sort_values(["_leader_order", "lead_votes"], ascending=[True, False])
+    # 保革（オール沖縄・革新 対 保守）の軸で符号付きに並べる。
+    # 上ほどオール沖縄・革新が優位、下ほど保守が優位。表示は実際にリードした候補者名のまま。
+    tbl = tbl.sort_values("current_margin", ascending=True)
 elif sort_mode == "接戦順":
     tbl = tbl[tbl["reported_votes"] > 0].sort_values("接戦度", ascending=True)
 elif sort_mode == "残票":

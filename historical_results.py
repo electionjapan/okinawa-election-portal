@@ -47,7 +47,7 @@ with nav_back:
         st.rerun()
 with nav_label:
     st.markdown('<div class="portal-breadcrumb">沖縄選挙ポータル / 過去の選挙結果</div>', unsafe_allow_html=True)
-st.caption("v0.9.13 · NEW MAP · 模式配置")
+st.caption("v0.9.16 · NEW MAP · 模式配置")
 
 st.markdown(
     """
@@ -80,6 +80,17 @@ div[data-testid="stHorizontalBlock"]:has(div[data-testid="stButton"]) {
 .result-card { border-top:1px solid #DADADA; padding:11px 2px 10px 2px; }
 .candidate-name { font-size:1.10rem; font-weight:700; }
 .candidate-party { color:#6B6B6B; font-size:.85rem; }
+.attr-badge {
+  display:inline-block;
+  color:#fff;
+  font-size:.72rem;
+  font-weight:700;
+  padding:.14rem .62rem;
+  border-radius:999px;
+  margin-left:.45rem;
+  vertical-align:middle;
+  letter-spacing:.02em;
+}
 .big-num { font-size:1.22rem; font-weight:750; text-align:right; }
 .pct-num { font-size:1.25rem; font-weight:800; text-align:right; }
 .progress-outer { height:7px; width:100%; background:#eee; margin-top:7px; }
@@ -162,6 +173,19 @@ BLUE_BLOC_ATTRS = ["オール沖縄系", "革新系（2014年以前）"]
 
 def candidate_color(attribute):
     return ATTR_COLOR.get(attribute, GRAY)
+
+ATTR_BADGE_LABEL = {
+    "保守系": "保守系",
+    "オール沖縄系": "オール沖縄",
+    "革新系（2014年以前）": "革新",
+}
+
+def attribute_badge(attribute):
+    label = ATTR_BADGE_LABEL.get(attribute)
+    if not label:
+        return ""
+    color = RED if attribute == "保守系" else BLUE
+    return f'<span class="attr-badge" style="background:{color};">{label}</span>'
 
 def is_blue_bloc(attribute):
     return attribute in BLUE_BLOC_ATTRS
@@ -392,9 +416,22 @@ def add_layout_boxes(fig, layout_boxes):
             )
     return fig
 
+def apply_zoom(fig, zoom):
+    if zoom and zoom != 1.0:
+        xr = list(fig.layout.xaxis.range) if fig.layout.xaxis.range else None
+        yr = list(fig.layout.yaxis.range) if fig.layout.yaxis.range else None
+        if xr and yr:
+            cx, cy = (xr[0] + xr[1]) / 2, (yr[0] + yr[1]) / 2
+            hx, hy = (xr[1] - xr[0]) / 2 / zoom, (yr[1] - yr[0]) / 2 / zoom
+            fig.update_xaxes(range=[cx - hx, cx + hx])
+            fig.update_yaxes(range=[cy - hy, cy + hy])
+    return fig
+
 def render_boxed_map(panel_fn, geojson, layout_boxes, height, key_prefix, *args, **kwargs):
+    zoom_pct = st.slider("拡大", 100, 400, 100, step=20, key=f"{key_prefix}-zoom", format="%d%%")
     fig = panel_fn(geojson, *args, height=height, **kwargs)
     fig = add_layout_boxes(fig, layout_boxes)
+    fig = apply_zoom(fig, zoom_pct / 100.0)
     st.plotly_chart(
         fig,
         use_container_width=True,
@@ -473,7 +510,7 @@ def render_candidate_totals(totals):
         html.append(f"""
         <div class="result-card" style="border-left:7px solid {color};padding-left:12px;">
           <div style="display:grid;grid-template-columns:1.5fr .8fr .65fr;gap:10px;align-items:end;">
-            <div><span class="candidate-name">{r['candidate_name']}</span><br><span class="candidate-party">{r['party'] or r['attribute']}</span></div>
+            <div><span class="candidate-name">{r['candidate_name']}</span>{attribute_badge(r['attribute'])}<br><span class="candidate-party">{r['party'] or r['attribute']}</span></div>
             <div class="big-num">{float(r['votes']):,.0f}</div>
             <div class="pct-num">{float(r['pct']):.2f}%</div>
           </div>
@@ -539,17 +576,17 @@ with right:
     global_max_lead=max(float(summary["lead_votes"].max()),1.0)
     if map_mode=="得票シェア":
         render_boxed_map(winner_map_panel,geojson,layout_boxes,600,"hist-share",summary,d)
-        st.caption("本島を中央、周辺離島を外周の枠へ配置した模式図。濃い赤・濃い青ほど勝者のリード幅が大きく、同数はグレー。1本指で移動、右上のアイコンで拡大・縮小できます。")
+        st.caption("本島を中央、周辺離島を外周の枠へ配置した模式図。濃い赤・濃い青ほど勝者のリード幅が大きく、同数はグレー。1本指で移動。地図の上にあるスライダーで拡大・縮小できます。")
     elif map_mode=="リード票":
         render_boxed_map(lead_bubble_panel,geojson,layout_boxes,510,"hist-lead",summary,global_max_lead=global_max_lead)
-        st.caption("円の大きさ＝1位と2位の票差。本島・離島で同じサイズ基準。1本指で移動、右上のアイコンで拡大・縮小できます。")
+        st.caption("円の大きさ＝1位と2位の票差。本島・離島で同じサイズ基準。1本指で移動。地図の上にあるスライダーで拡大・縮小できます。")
     else:
         render_boxed_map(turnout_map_panel,geojson,layout_boxes,510,"hist-turnout",summary)
-        st.caption("投票率データがDBにある選挙のみ表示します。1本指で移動、右上のアイコンで拡大・縮小できます。")
+        st.caption("投票率データがDBにある選挙のみ表示します。1本指で移動。地図の上にあるスライダーで拡大・縮小できます。")
 
 # ---------------- municipality table ----------------
 st.markdown('<div class="section-title">市町村別結果</div>',unsafe_allow_html=True)
-st.markdown('<div class="section-deck">列見出しから自由にソートできます。</div>',unsafe_allow_html=True)
+st.markdown('<div class="section-deck">オール沖縄・革新が優位な市町村から保守が優位な市町村の順に並びます(列見出しで並べ替えも可能)。</div>',unsafe_allow_html=True)
 
 table=summary.copy()
 table["勝者"]=table.apply(lambda r:"同数" if r["leader_attribute"]=="同数" else r["leader_name"],axis=1)
@@ -557,6 +594,8 @@ table["リードpt"]=table["lead_points"]
 table["リード票"]=table["lead_votes"]
 table["有効投票"]=table["valid_votes"]
 table["投票率"]=table["turnout_rate"].map(lambda x:None if pd.isna(x) else 100*x)
+_margin=two_bloc_margin(results,selected_id).rename(columns={"margin":"_sort_margin"})
+table=table.merge(_margin,on="municipality_code",how="left").sort_values("_sort_margin",ascending=True)
 show_cols=["municipality_name","勝者","リードpt","リード票","有効投票"]
 if has_turnout:
     show_cols.append("投票率")

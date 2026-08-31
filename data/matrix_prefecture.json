@@ -1,0 +1,350 @@
+[
+  {
+    "election_id": "GOV2010",
+    "kind": "single",
+    "winner_name": "仲井眞弘多",
+    "winner_surname": "仲井眞",
+    "winner_attr": "保守系",
+    "margin_votes": 38626,
+    "margin_pt": 5.98
+  },
+  {
+    "election_id": "GOV2014",
+    "kind": "single",
+    "winner_name": "翁長雄志",
+    "winner_surname": "翁長",
+    "winner_attr": "オール沖縄系",
+    "margin_votes": 99744,
+    "margin_pt": 14.27
+  },
+  {
+    "election_id": "GOV2018",
+    "kind": "single",
+    "winner_name": "玉城デニー",
+    "winner_surname": "玉城",
+    "winner_attr": "オール沖縄系",
+    "margin_votes": 80174,
+    "margin_pt": 11.13
+  },
+  {
+    "election_id": "GOV2022",
+    "kind": "single",
+    "winner_name": "玉城デニー",
+    "winner_surname": "玉城",
+    "winner_attr": "オール沖縄系",
+    "margin_votes": 64923,
+    "margin_pt": 9.71
+  },
+  {
+    "election_id": "SEN2010",
+    "kind": "single",
+    "winner_name": "島尻安伊子",
+    "winner_surname": "島尻",
+    "winner_attr": "保守系",
+    "margin_votes": 43256,
+    "margin_pt": 7.96
+  },
+  {
+    "election_id": "SEN2013",
+    "kind": "single",
+    "winner_name": "糸数慶子",
+    "winner_surname": "糸数",
+    "winner_attr": "革新系（2014年以前）",
+    "margin_votes": 33028,
+    "margin_pt": 5.74
+  },
+  {
+    "election_id": "SEN2016",
+    "kind": "single",
+    "winner_name": "伊波洋一",
+    "winner_surname": "伊波",
+    "winner_attr": "オール沖縄系",
+    "margin_votes": 106400,
+    "margin_pt": 17.27
+  },
+  {
+    "election_id": "SEN2019",
+    "kind": "single",
+    "winner_name": "高良鉄美",
+    "winner_surname": "高良",
+    "winner_attr": "オール沖縄系",
+    "margin_votes": 63903,
+    "margin_pt": 11.46
+  },
+  {
+    "election_id": "SEN2022",
+    "kind": "single",
+    "winner_name": "伊波洋一",
+    "winner_surname": "伊波",
+    "winner_attr": "オール沖縄系",
+    "margin_votes": 2888,
+    "margin_pt": 0.49
+  },
+  {
+    "election_id": "SEN2025",
+    "kind": "single",
+    "winner_name": "タカラさちか",
+    "winner_surname": "タカラ",
+    "winner_attr": "オール沖縄系",
+    "margin_votes": 33296,
+    "margin_pt": 5.12
+  },
+  {
+    "election_id": "HR2012",
+    "kind": "districts",
+    "seats": [
+      {
+        "district": "沖縄県第1区",
+        "winner_name": "コクバ幸之助",
+        "winner_surname": "コクバ",
+        "winner_attr": "保守系",
+        "margin_votes": 18368,
+        "margin_pt": 12.13
+      },
+      {
+        "district": "沖縄県第2区",
+        "winner_name": "テルヤ寛徳",
+        "winner_surname": "テルヤ",
+        "winner_attr": "革新系（2014年以前）",
+        "margin_votes": 18125,
+        "margin_pt": 12.09
+      },
+      {
+        "district": "沖縄県第3区",
+        "winner_name": "比嘉なつみ",
+        "winner_surname": "比嘉",
+        "winner_attr": "保守系",
+        "margin_votes": 11812,
+        "margin_pt": 7.51
+      },
+      {
+        "district": "沖縄県第4区",
+        "winner_name": "ニシメ恒三郎",
+        "winner_surname": "ニシメ",
+        "winner_attr": "保守系",
+        "margin_votes": 39121,
+        "margin_pt": 28.02
+      }
+    ],
+    "seat_camp": {
+      "保守": 3,
+      "オール沖縄・革新": 1,
+      "その他": 0
+    }
+  },
+  {
+    "election_id": "HR2014",
+    "kind": "districts",
+    "seats": [
+      {
+        "district": "沖縄県第1区",
+        "winner_name": "あかみね政賢",
+        "winner_surname": "あかみね",
+        "winner_attr": "オール沖縄系",
+        "margin_votes": 4694,
+        "margin_pt": 3.23
+      },
+      {
+        "district": "沖縄県第2区",
+        "winner_name": "テルヤ寛徳",
+        "winner_surname": "テルヤ",
+        "winner_attr": "オール沖縄系",
+        "margin_votes": 33625,
+        "margin_pt": 24.38
+      },
+      {
+        "district": "沖縄県第3区",
+        "winner_name": "玉城デニー",
+        "winner_surname": "玉城",
+        "winner_attr": "オール沖縄系",
+        "margin_votes": 29619,
+        "margin_pt": 19.93
+      },
+      {
+        "district": "沖縄県第4区",
+        "winner_name": "ナカサト利信",
+        "winner_surname": "ナカサト",
+        "winner_attr": "オール沖縄系",
+        "margin_votes": 5389,
+        "margin_pt": 3.93
+      }
+    ],
+    "seat_camp": {
+      "保守": 0,
+      "オール沖縄・革新": 4,
+      "その他": 0
+    }
+  },
+  {
+    "election_id": "HR2017",
+    "kind": "districts",
+    "seats": [
+      {
+        "district": "沖縄県第1区",
+        "winner_name": "あかみね政賢",
+        "winner_surname": "あかみね",
+        "winner_attr": "オール沖縄系",
+        "margin_votes": 6137,
+        "margin_pt": 4.04
+      },
+      {
+        "district": "沖縄県第2区",
+        "winner_name": "テルヤ寛徳",
+        "winner_surname": "テルヤ",
+        "winner_attr": "オール沖縄系",
+        "margin_votes": 27947,
+        "margin_pt": 17.86
+      },
+      {
+        "district": "沖縄県第3区",
+        "winner_name": "玉城デニー",
+        "winner_surname": "玉城",
+        "winner_attr": "オール沖縄系",
+        "margin_votes": 28990,
+        "margin_pt": 17.56
+      },
+      {
+        "district": "沖縄県第4区",
+        "winner_name": "ニシメ恒三郎",
+        "winner_surname": "ニシメ",
+        "winner_attr": "保守系",
+        "margin_votes": 6312,
+        "margin_pt": 3.88
+      }
+    ],
+    "seat_camp": {
+      "保守": 1,
+      "オール沖縄・革新": 3,
+      "その他": 0
+    }
+  },
+  {
+    "election_id": "HR2021",
+    "kind": "districts",
+    "seats": [
+      {
+        "district": "沖縄県第1区",
+        "winner_name": "あかみね政賢",
+        "winner_surname": "あかみね",
+        "winner_attr": "オール沖縄系",
+        "margin_votes": 6987,
+        "margin_pt": 4.79
+      },
+      {
+        "district": "沖縄県第2区",
+        "winner_name": "新垣クニオ",
+        "winner_surname": "新垣",
+        "winner_attr": "オール沖縄系",
+        "margin_votes": 10123,
+        "margin_pt": 6.43
+      },
+      {
+        "district": "沖縄県第3区",
+        "winner_name": "島尻安伊子",
+        "winner_surname": "島尻",
+        "winner_attr": "保守系",
+        "margin_votes": 7214,
+        "margin_pt": 4.29
+      },
+      {
+        "district": "沖縄県第4区",
+        "winner_name": "ニシメ恒三郎",
+        "winner_surname": "ニシメ",
+        "winner_attr": "保守系",
+        "margin_votes": 15640,
+        "margin_pt": 9.79
+      }
+    ],
+    "seat_camp": {
+      "保守": 2,
+      "オール沖縄・革新": 2,
+      "その他": 0
+    }
+  },
+  {
+    "election_id": "HR2024",
+    "kind": "districts",
+    "seats": [
+      {
+        "district": "沖縄県第1区",
+        "winner_name": "あかみね政賢",
+        "winner_surname": "あかみね",
+        "winner_attr": "オール沖縄系",
+        "margin_votes": 7734,
+        "margin_pt": 5.91
+      },
+      {
+        "district": "沖縄県第2区",
+        "winner_name": "新垣クニオ",
+        "winner_surname": "新垣",
+        "winner_attr": "オール沖縄系",
+        "margin_votes": 13944,
+        "margin_pt": 9.57
+      },
+      {
+        "district": "沖縄県第3区",
+        "winner_name": "島尻安伊子",
+        "winner_surname": "島尻",
+        "winner_attr": "保守系",
+        "margin_votes": 1769,
+        "margin_pt": 1.13
+      },
+      {
+        "district": "沖縄県第4区",
+        "winner_name": "ニシメ恒三郎",
+        "winner_surname": "ニシメ",
+        "winner_attr": "保守系",
+        "margin_votes": 14041,
+        "margin_pt": 9.94
+      }
+    ],
+    "seat_camp": {
+      "保守": 2,
+      "オール沖縄・革新": 2,
+      "その他": 0
+    }
+  },
+  {
+    "election_id": "HR2026",
+    "kind": "districts",
+    "seats": [
+      {
+        "district": "沖縄県第1区",
+        "winner_name": "コクバ幸之助",
+        "winner_surname": "コクバ",
+        "winner_attr": "保守系",
+        "margin_votes": 5577,
+        "margin_pt": 4.01
+      },
+      {
+        "district": "沖縄県第2区",
+        "winner_name": "ミヤザキ政久",
+        "winner_surname": "ミヤザキ",
+        "winner_attr": "保守系",
+        "margin_votes": 13571,
+        "margin_pt": 8.26
+      },
+      {
+        "district": "沖縄県第3区",
+        "winner_name": "島尻安伊子",
+        "winner_surname": "島尻",
+        "winner_attr": "保守系",
+        "margin_votes": 25361,
+        "margin_pt": 15.09
+      },
+      {
+        "district": "沖縄県第4区",
+        "winner_name": "ニシメ恒三郎",
+        "winner_surname": "ニシメ",
+        "winner_attr": "保守系",
+        "margin_votes": 38846,
+        "margin_pt": 25.28
+      }
+    ],
+    "seat_camp": {
+      "保守": 4,
+      "オール沖縄・革新": 0,
+      "その他": 0
+    }
+  }
+]
