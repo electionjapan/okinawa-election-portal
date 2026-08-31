@@ -52,7 +52,7 @@ with nav_back:
         st.rerun()
 with nav_label:
     st.markdown('<div class="portal-breadcrumb">沖縄選挙ポータル / 開票速報</div>', unsafe_allow_html=True)
-st.caption("v0.9.10 · NEW MAP · 模式配置")
+st.caption("v0.9.11 · NEW MAP · 模式配置")
 
 st.markdown(
     """
@@ -103,8 +103,9 @@ div[data-testid="stHorizontalBlock"]:has(div[data-testid="stButton"]) {
 .map-caption { font-size:.82rem; color:#666; margin-top:-5px; margin-bottom:4px; }
 .note-box { background:#f7f7f7; border:1px solid #ddd; padding:10px 13px; font-size:.86rem; color:#666; border-radius:5px; }
 .legend-row { display:flex; gap:18px; align-items:center; font-size:.82rem; color:#666; margin:.2rem 0 .5rem; }
-.js-plotly-plot, .js-plotly-plot .plot-container, .js-plotly-plot .svg-container {
-  touch-action: pan-y pinch-zoom !important;
+.js-plotly-plot, .js-plotly-plot .plot-container, .js-plotly-plot .svg-container,
+.js-plotly-plot .nsewdrag, .js-plotly-plot svg {
+  touch-action: none !important;
 }
 @media (max-width: 800px) {
   .block-container {

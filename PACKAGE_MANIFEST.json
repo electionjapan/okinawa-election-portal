@@ -1,19 +1,7 @@
 [
   {
     "path": "README.md",
-    "size_bytes": 3302
-  },
-  {
-    "path": "__pycache__/app.cpython-312.pyc",
-    "size_bytes": 5437
-  },
-  {
-    "path": "__pycache__/historical_results.cpython-312.pyc",
-    "size_bytes": 42464
-  },
-  {
-    "path": "__pycache__/live_results.cpython-312.pyc",
-    "size_bytes": 55613
+    "size_bytes": 3331
   },
   {
     "path": "app.py",
@@ -45,11 +33,11 @@
   },
   {
     "path": "historical_results.py",
-    "size_bytes": 28944
+    "size_bytes": 28980
   },
   {
     "path": "live_results.py",
-    "size_bytes": 39417
+    "size_bytes": 39453
   },
   {
     "path": "requirements.txt",
