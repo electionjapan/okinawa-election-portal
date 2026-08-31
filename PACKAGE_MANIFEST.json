@@ -1,11 +1,11 @@
 [
   {
     "path": "README.md",
-    "size_bytes": 4852
+    "size_bytes": 7269
   },
   {
     "path": "app.py",
-    "size_bytes": 4377
+    "size_bytes": 5067
   },
   {
     "path": "data/elections.json",
@@ -18,6 +18,18 @@
   {
     "path": "data/map_layout_v0912.json",
     "size_bytes": 1908
+  },
+  {
+    "path": "data/matrix_elections.json",
+    "size_bytes": 2166
+  },
+  {
+    "path": "data/matrix_municipalities.json",
+    "size_bytes": 6512
+  },
+  {
+    "path": "data/matrix_winners.json",
+    "size_bytes": 174515
   },
   {
     "path": "data/municipalities.json",
@@ -33,11 +45,15 @@
   },
   {
     "path": "historical_results.py",
-    "size_bytes": 29275
+    "size_bytes": 30881
   },
   {
     "path": "live_results.py",
-    "size_bytes": 40145
+    "size_bytes": 41430
+  },
+  {
+    "path": "matrix_results.py",
+    "size_bytes": 15437
   },
   {
     "path": "requirements.txt",

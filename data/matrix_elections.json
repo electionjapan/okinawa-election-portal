@@ -1,0 +1,114 @@
+[
+  {
+    "election_id": "GOV2010",
+    "race_type": "GOV",
+    "year": 2010,
+    "label": "2010知事選",
+    "date": "2010-11-28"
+  },
+  {
+    "election_id": "SEN2010",
+    "race_type": "SEN",
+    "year": 2010,
+    "label": "2010参院選",
+    "date": "2010-07-11"
+  },
+  {
+    "election_id": "HR2012",
+    "race_type": "HR",
+    "year": 2012,
+    "label": "2012衆院選",
+    "date": "2012-12-16"
+  },
+  {
+    "election_id": "SEN2013",
+    "race_type": "SEN",
+    "year": 2013,
+    "label": "2013参院選",
+    "date": "2013-07-21"
+  },
+  {
+    "election_id": "GOV2014",
+    "race_type": "GOV",
+    "year": 2014,
+    "label": "2014知事選",
+    "date": "2014-11-16"
+  },
+  {
+    "election_id": "HR2014",
+    "race_type": "HR",
+    "year": 2014,
+    "label": "2014衆院選",
+    "date": "2014-12-14"
+  },
+  {
+    "election_id": "SEN2016",
+    "race_type": "SEN",
+    "year": 2016,
+    "label": "2016参院選",
+    "date": "2016-07-10"
+  },
+  {
+    "election_id": "HR2017",
+    "race_type": "HR",
+    "year": 2017,
+    "label": "2017衆院選",
+    "date": "2017-10-22"
+  },
+  {
+    "election_id": "GOV2018",
+    "race_type": "GOV",
+    "year": 2018,
+    "label": "2018知事選",
+    "date": "2018-09-30"
+  },
+  {
+    "election_id": "SEN2019",
+    "race_type": "SEN",
+    "year": 2019,
+    "label": "2019参院選",
+    "date": "2019-07-21"
+  },
+  {
+    "election_id": "HR2021",
+    "race_type": "HR",
+    "year": 2021,
+    "label": "2021衆院選",
+    "date": "2021-10-31"
+  },
+  {
+    "election_id": "GOV2022",
+    "race_type": "GOV",
+    "year": 2022,
+    "label": "2022知事選",
+    "date": "2022-09-11"
+  },
+  {
+    "election_id": "SEN2022",
+    "race_type": "SEN",
+    "year": 2022,
+    "label": "2022参院選",
+    "date": "2022-07-10"
+  },
+  {
+    "election_id": "HR2024",
+    "race_type": "HR",
+    "year": 2024,
+    "label": "2024衆院選",
+    "date": "2024-10-27"
+  },
+  {
+    "election_id": "SEN2025",
+    "race_type": "SEN",
+    "year": 2025,
+    "label": "2025参院選",
+    "date": "2025-07-20"
+  },
+  {
+    "election_id": "HR2026",
+    "race_type": "HR",
+    "year": 2026,
+    "label": "2026衆院選",
+    "date": "2026-02-08"
+  }
+]

@@ -71,6 +71,7 @@ div[data-testid="stAppViewContainer"] { padding-top: 0 !important; }
 }
 .portal-card-live { border-top-color:#C93238; }
 .portal-card-history { border-top-color:#1675B9; }
+.portal-card-matrix { border-top-color:#222; }
 .portal-card-title {
     font-family:Georgia,"Yu Mincho",serif;
     font-size:1.65rem;
@@ -104,7 +105,7 @@ div[data-testid="stButton"] > button {
         unsafe_allow_html=True,
     )
 
-    st.markdown('<div class="portal-kicker">OKINAWA ELECTION PORTAL · v0.9.12 · NEW MAP</div>', unsafe_allow_html=True)
+    st.markdown('<div class="portal-kicker">OKINAWA ELECTION PORTAL · v0.9.14 · NEW MAP</div>', unsafe_allow_html=True)
     st.markdown('<div class="portal-title">沖縄選挙ポータル</div>', unsafe_allow_html=True)
     st.markdown(
         '<div class="portal-deck">沖縄の選挙を、開票速報と過去の確定結果の2つの入口から見るためのポータルです。</div>',
@@ -112,7 +113,7 @@ div[data-testid="stButton"] > button {
     )
     st.markdown('<div class="portal-rule"></div>', unsafe_allow_html=True)
 
-    c1, c2 = st.columns(2, gap="large")
+    c1, c2, c3 = st.columns(3, gap="large")
 
     with c1:
         st.markdown(
@@ -144,8 +145,23 @@ div[data-testid="stButton"] > button {
         if st.button("過去の選挙結果を見る", key="home_history", use_container_width=True):
             go("history")
 
+    with c3:
+        st.markdown(
+            """
+<div class="portal-card portal-card-matrix">
+  <div class="portal-card-title">41市町村 保守寄り？革新より？</div>
+  <div class="portal-card-copy">
+    知事選・参院選・衆院選をまたいで、市町村ごとの勝差を一覧表と地図で比較。
+  </div>
+</div>
+""",
+            unsafe_allow_html=True,
+        )
+        if st.button("一覧で比較する", key="home_matrix", use_container_width=True):
+            go("matrix")
+
     st.markdown(
-        '<div class="portal-foot">Okinawa Election Portal — v0.9.12</div>',
+        '<div class="portal-foot">Okinawa Election Portal — v0.9.14</div>',
         unsafe_allow_html=True,
     )
 
@@ -157,6 +173,8 @@ elif page == "live":
     exec(compile((APP_DIR / "live_results.py").read_text(encoding="utf-8"), "live_results.py", "exec"))
 elif page == "history":
     exec(compile((APP_DIR / "historical_results.py").read_text(encoding="utf-8"), "historical_results.py", "exec"))
+elif page == "matrix":
+    exec(compile((APP_DIR / "matrix_results.py").read_text(encoding="utf-8"), "matrix_results.py", "exec"))
 else:
     st.session_state["portal_page"] = "home"
     st.rerun()
