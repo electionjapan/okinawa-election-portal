@@ -1,46 +1,46 @@
 [
   {
     "path": "README.md",
-    "bytes": 895
+    "size_bytes": 1721
   },
   {
     "path": "app.py",
-    "bytes": 4267
+    "size_bytes": 4267
   },
   {
     "path": "data/elections.json",
-    "bytes": 1066
+    "size_bytes": 1756
   },
   {
-    "path": "data/map_layout_v097.geojson",
-    "bytes": 1463502
+    "path": "data/map_layout_v098.geojson",
+    "size_bytes": 1221302
   },
   {
-    "path": "data/map_layout_v097.json",
-    "bytes": 1122
+    "path": "data/map_layout_v098.json",
+    "size_bytes": 1312
   },
   {
     "path": "data/municipalities.json",
-    "bytes": 11626
+    "size_bytes": 11626
   },
   {
     "path": "data/statewide_results.json",
-    "bytes": 317629
+    "size_bytes": 411424
   },
   {
     "path": "data/turnout.json",
-    "bytes": 11655
+    "size_bytes": 11655
   },
   {
     "path": "historical_results.py",
-    "bytes": 28115
+    "size_bytes": 28510
   },
   {
     "path": "live_results.py",
-    "bytes": 38570
+    "size_bytes": 38984
   },
   {
     "path": "requirements.txt",
-    "bytes": 41
+    "size_bytes": 41
   }
 ]

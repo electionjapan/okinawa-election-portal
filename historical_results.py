@@ -46,7 +46,7 @@ with nav_back:
         st.rerun()
 with nav_label:
     st.markdown('<div class="portal-breadcrumb">沖縄選挙ポータル / 過去の選挙結果</div>', unsafe_allow_html=True)
-st.caption("v0.9.7 · NEW MAP · 模式配置")
+st.caption("v0.9.9 · NEW MAP · 模式配置")
 
 st.markdown(
     """
@@ -113,8 +113,8 @@ def load_all():
         pd.DataFrame(load_json("elections.json")),
         pd.DataFrame(load_json("turnout.json")),
         pd.DataFrame(load_json("municipalities.json")),
-        load_json("map_layout_v097.geojson"),
-        load_json("map_layout_v097.json"),
+        load_json("map_layout_v098.geojson"),
+        load_json("map_layout_v098.json"),
     )
 
 def serial_to_date(v):
@@ -141,8 +141,13 @@ def blend(c1, c2, t):
     r2,g2,b2 = hex_to_rgb(c2)
     return rgb_to_hex((r1+(r2-r1)*t, g1+(g2-g1)*t, b1+(b2-b1)*t))
 
+BLUE_BLOC_ATTRS = ["オール沖縄系", "革新系（2014年以前）"]
+
 def candidate_color(attribute):
     return ATTR_COLOR.get(attribute, GRAY)
+
+def is_blue_bloc(attribute):
+    return attribute in BLUE_BLOC_ATTRS
 
 def lead_fill_color(attribute, lead_points, valid_votes):
     if valid_votes <= 0:
@@ -152,7 +157,7 @@ def lead_fill_color(attribute, lead_points, valid_votes):
     t = min(abs(float(lead_points)) / 25.0, 1.0)
     if attribute == "保守系":
         return blend(RED_LIGHT, RED, t)
-    if attribute == "オール沖縄系":
+    if is_blue_bloc(attribute):
         return blend(BLUE_LIGHT, BLUE, t)
     return "#E3E3E3"
 
@@ -297,11 +302,13 @@ def lead_bubble_panel(geojson, summary, height=420, global_max_lead=1):
     for f in geojson["features"]:
         x,y = _geometry_xy(f["geometry"])
         fig.add_trace(go.Scatter(x=x,y=y,mode="lines",line=dict(color="#D4D4D4",width=.7),hoverinfo="skip",showlegend=False,name=""))
-    for attr,color in [("保守系",RED),("オール沖縄系",BLUE),("同数",GRAY),("その他","#B8B8B8")]:
+    for attr,color in [("保守系",RED),("革新・オール沖縄",BLUE),("同数",GRAY),("その他","#B8B8B8")]:
         if attr=="同数":
             sub=d[d["leader_attribute"]=="同数"]
+        elif attr=="革新・オール沖縄":
+            sub=d[d["leader_attribute"].isin(BLUE_BLOC_ATTRS)]
         elif attr=="その他":
-            sub=d[~d["leader_attribute"].isin(["保守系","オール沖縄系","同数"])]
+            sub=d[~d["leader_attribute"].isin(["保守系", *BLUE_BLOC_ATTRS, "同数"])]
         else:
             sub=d[d["leader_attribute"]==attr]
         if sub.empty:
@@ -380,25 +387,29 @@ def render_boxed_map(panel_fn, geojson, layout_boxes, height, key_prefix, *args,
 
 def two_bloc_margin(results,election_id):
     d=results[results["election_id"]==election_id].copy()
-    bloc=d[d["attribute"].isin(["保守系","オール沖縄系"])]
+    d["bloc"]=d["attribute"].map(
+        lambda x: "保守系" if x=="保守系" else ("青陣営" if x in BLUE_BLOC_ATTRS else None)
+    )
+    bloc=d[d["bloc"].notna()]
     sums=(
-        bloc.groupby(["municipality_code","attribute"],as_index=False)["votes"].sum()
-        .pivot(index="municipality_code",columns="attribute",values="votes")
+        bloc.groupby(["municipality_code","bloc"],as_index=False)["votes"].sum()
+        .pivot(index="municipality_code",columns="bloc",values="votes")
         .fillna(0).reset_index()
     )
     valid=d.groupby("municipality_code",as_index=False)["valid_votes"].first()
-    for c in ["保守系","オール沖縄系"]:
+    for c in ["保守系","青陣営"]:
         if c not in sums.columns:
             sums[c]=0.0
     sums=sums.merge(valid,on="municipality_code",how="left")
-    sums["margin"]=100*(sums["保守系"]-sums["オール沖縄系"])/sums["valid_votes"].replace(0,pd.NA)
+    sums["margin"]=100*(sums["保守系"]-sums["青陣営"])/sums["valid_votes"].replace(0,pd.NA)
     return sums[["municipality_code","margin"]].fillna(0)
 
 def state_margin(results,election_id):
-    d=results[results["election_id"]==election_id]
-    t=d[d["attribute"].isin(["保守系","オール沖縄系"])].groupby("attribute")["votes"].sum()
+    d=results[results["election_id"]==election_id].copy()
+    cons=d.loc[d["attribute"]=="保守系","votes"].sum()
+    blue=d.loc[d["attribute"].isin(BLUE_BLOC_ATTRS),"votes"].sum()
     allv=d["votes"].sum()
-    return 0.0 if allv==0 else 100*(t.get("保守系",0)-t.get("オール沖縄系",0))/allv
+    return 0.0 if allv==0 else 100*(cons-blue)/allv
 
 def shift_map_panel(geojson,swing,global_max_shift,height=420):
     loc=label_lookup(geojson)
@@ -408,7 +419,7 @@ def shift_map_panel(geojson,swing,global_max_shift,height=420):
     for f in geojson["features"]:
         x,y=_geometry_xy(f["geometry"])
         fig.add_trace(go.Scatter(x=x,y=y,mode="lines",line=dict(color="#D7D7D7",width=.75),hoverinfo="skip",showlegend=False,name=""))
-    for direction,color,symbol,positive in [("保守",RED,"triangle-right",True),("オール沖縄",BLUE,"triangle-left",False)]:
+    for direction,color,symbol,positive in [("保守",RED,"triangle-right",True),("革新・オール沖縄",BLUE,"triangle-left",False)]:
         lx=[];ly=[];mx=[];my=[];ms=[];text=[]
         part=s[s["shift"]>0] if positive else s[s["shift"]<0]
         for _,r in part.iterrows():
@@ -545,7 +556,7 @@ st.dataframe(table,hide_index=True,use_container_width=True,height=540,column_co
 
 # ---------------- comparison ----------------
 st.markdown('<div class="section-title">保革マージンを別の選挙と比較</div>',unsafe_allow_html=True)
-st.markdown('<div class="section-deck">比較対象は表示中の選挙とは独立して選べます。赤＝保守方向、青＝オール沖縄方向、変化なし＝グレー。</div>',unsafe_allow_html=True)
+st.markdown('<div class="section-deck">比較対象は表示中の選挙とは独立して選べます。赤＝保守方向、青＝革新・オール沖縄方向、変化なし＝グレー。</div>',unsafe_allow_html=True)
 
 compare_candidates=elections[elections["election_id"]!=selected_id].copy()
 # Default: immediately older election, otherwise first available.
@@ -583,14 +594,14 @@ with comp_left:
     render_boxed_map(shift_map_panel,geojson,layout_boxes,510,"history-shift",swing,global_max_shift)
     st.markdown(
         f'<div class="legend-row"><span style="color:{RED};font-weight:800;">→ 保守方向</span>'
-        f'<span style="color:{BLUE};font-weight:800;">← オール沖縄方向</span>'
+        f'<span style="color:{BLUE};font-weight:800;">← 革新・オール沖縄方向</span>'
         f'<span style="color:{GRAY};font-weight:800;">● 変化なし</span></div>',
         unsafe_allow_html=True,
     )
 with comp_right:
     comp=swing.copy()
-    comp["表示選挙マージン"]=comp["selected_margin"].map(lambda x:f"保守 +{x:.1f}" if x>0 else f"オール沖縄 +{abs(x):.1f}" if x<0 else "同率")
-    comp["比較選挙マージン"]=comp["compare_margin"].map(lambda x:f"保守 +{x:.1f}" if x>0 else f"オール沖縄 +{abs(x):.1f}" if x<0 else "同率")
+    comp["表示選挙マージン"]=comp["selected_margin"].map(lambda x:f"保守 +{x:.1f}" if x>0 else f"革新・オール沖縄 +{abs(x):.1f}" if x<0 else "同率")
+    comp["比較選挙マージン"]=comp["compare_margin"].map(lambda x:f"保守 +{x:.1f}" if x>0 else f"革新・オール沖縄 +{abs(x):.1f}" if x<0 else "同率")
     comp["シフト"]=comp["shift"]
     comp=comp.sort_values("シフト",key=lambda s:s.abs(),ascending=False)
     st.dataframe(
@@ -600,7 +611,7 @@ with comp_right:
     )
 
 st.markdown(
-    '<div class="note-box"><b>比較の定義：</b> 各選挙で「保守系得票率－オール沖縄系得票率」を算出し、'
+    '<div class="note-box"><b>比較の定義：</b> 各選挙で「保守系得票率－（革新系［2014年以前］＋オール沖縄系）得票率」を算出し、'
     '表示中の選挙から比較対象の選挙を差し引きます。第三候補・その他候補の票も全有効票の分母に残します。</div>',
     unsafe_allow_html=True,
 )

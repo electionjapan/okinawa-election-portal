@@ -32,6 +32,8 @@ ATTR_COLOR = {
     "革新分裂候補": "#8C8C8C",
 }
 
+BLUE_BLOC_ATTRS = ["オール沖縄系", "革新系（2014年以前）"]
+
 PLOT_CONFIG = {
     "scrollZoom": True,
     "doubleClick": "reset+autosize",
@@ -50,7 +52,7 @@ with nav_back:
         st.rerun()
 with nav_label:
     st.markdown('<div class="portal-breadcrumb">沖縄選挙ポータル / 開票速報</div>', unsafe_allow_html=True)
-st.caption("v0.9.7 · NEW MAP · 模式配置")
+st.caption("v0.9.9 · NEW MAP · 模式配置")
 
 st.markdown(
     """
@@ -126,8 +128,8 @@ def load_all():
     elections = pd.DataFrame(load_json("elections.json"))
     turnout = pd.DataFrame(load_json("turnout.json"))
     municipalities = pd.DataFrame(load_json("municipalities.json"))
-    geojson = load_json("map_layout_v097.geojson")
-    layout_boxes = load_json("map_layout_v097.json")
+    geojson = load_json("map_layout_v098.geojson")
+    layout_boxes = load_json("map_layout_v098.json")
     return results, elections, turnout, municipalities, geojson, layout_boxes
 
 def serial_to_date(v):
@@ -176,7 +178,7 @@ def lead_fill_color(attribute, lead_points, reported_votes):
     t = min(abs(lead_points) / 25.0, 1.0)
     if attribute == "保守系":
         return blend(RED_LIGHT, RED, t)
-    if attribute == "オール沖縄系":
+    if attribute in BLUE_BLOC_ATTRS:
         return blend(BLUE_LIGHT, BLUE, t)
     return "#E3E3E3"
 
@@ -275,19 +277,23 @@ def compare_context(results, turnout, current, msum, compare_id):
         })
     prev_summary = pd.DataFrame(top2)
 
-    dprev2 = dprev[dprev["attribute"].isin(["保守系", "オール沖縄系"])].copy()
+    dprev2 = dprev.copy()
+    dprev2["bloc"] = dprev2["attribute"].map(
+        lambda x: "保守系" if x == "保守系" else ("青陣営" if x in BLUE_BLOC_ATTRS else None)
+    )
+    dprev2 = dprev2[dprev2["bloc"].notna()]
     prev_margin = (
-        dprev2.groupby(["municipality_code", "attribute"], as_index=False)["votes"].sum()
-        .pivot(index="municipality_code", columns="attribute", values="votes")
+        dprev2.groupby(["municipality_code", "bloc"], as_index=False)["votes"].sum()
+        .pivot(index="municipality_code", columns="bloc", values="votes")
         .fillna(0).reset_index()
     )
     prev_valid = dprev.groupby("municipality_code", as_index=False)["valid_votes"].first()
-    for c in ["保守系", "オール沖縄系"]:
+    for c in ["保守系", "青陣営"]:
         if c not in prev_margin.columns:
             prev_margin[c] = 0.0
     prev_margin = prev_margin.merge(prev_valid, on="municipality_code", how="left")
     prev_margin["previous_margin"] = (
-        100 * (prev_margin["保守系"] - prev_margin["オール沖縄系"]) / prev_margin["valid_votes"].replace(0, pd.NA)
+        100 * (prev_margin["保守系"] - prev_margin["青陣営"]) / prev_margin["valid_votes"].replace(0, pd.NA)
     ).fillna(0)
 
     swing = (
@@ -418,11 +424,13 @@ def lead_bubble_panel(geojson, msum, height=420, max_value=1):
     for feature in geojson["features"]:
         xs, ys = _geometry_xy(feature["geometry"])
         fig.add_trace(go.Scatter(x=xs, y=ys, mode="lines", line=dict(color="#D4D4D4", width=0.7), hoverinfo="skip", showlegend=False, name=""))
-    for attr, color in [("保守系", RED), ("オール沖縄系", BLUE), ("同数", "#8E8E8E"), ("その他", "#B8B8B8")]:
+    for attr, color in [("保守系", RED), ("革新・オール沖縄", BLUE), ("同数", "#8E8E8E"), ("その他", "#B8B8B8")]:
         if attr == "同数":
             sub = d[d["leader_attribute"] == "同数"]
+        elif attr == "革新・オール沖縄":
+            sub = d[d["leader_attribute"].isin(BLUE_BLOC_ATTRS)]
         elif attr == "その他":
-            sub = d[~d["leader_attribute"].isin(["保守系", "オール沖縄系", "同数"])]
+            sub = d[~d["leader_attribute"].isin(["保守系", *BLUE_BLOC_ATTRS, "同数"])]
         else:
             sub = d[d["leader_attribute"] == attr]
         if sub.empty:
@@ -457,11 +465,13 @@ def remaining_bubble_panel(geojson, msum, compare_detail, compare_label, height=
     for feature in geojson["features"]:
         xs, ys = _geometry_xy(feature["geometry"])
         fig.add_trace(go.Scatter(x=xs, y=ys, mode="lines", line=dict(color="#D4D4D4", width=0.7), hoverinfo="skip", showlegend=False, name=""))
-    for attr, color in [("保守系", RED), ("オール沖縄系", BLUE), ("同数", "#8E8E8E"), ("その他", "#B8B8B8")]:
+    for attr, color in [("保守系", RED), ("革新・オール沖縄", BLUE), ("同数", "#8E8E8E"), ("その他", "#B8B8B8")]:
         if attr == "同数":
             sub = d[d["leader_attribute"] == "同数"]
+        elif attr == "革新・オール沖縄":
+            sub = d[d["leader_attribute"].isin(BLUE_BLOC_ATTRS)]
         elif attr == "その他":
-            sub = d[~d["leader_attribute"].isin(["保守系", "オール沖縄系", "同数"])]
+            sub = d[~d["leader_attribute"].isin(["保守系", *BLUE_BLOC_ATTRS, "同数"])]
         else:
             sub = d[d["leader_attribute"] == attr]
         if sub.empty:
@@ -500,7 +510,7 @@ def shift_map_panel(geojson, swing, threshold, global_max_shift, height=420):
 
     for direction, color, symbol, positive in [
         ("保守", RED, "triangle-right", True),
-        ("オール沖縄", BLUE, "triangle-left", False),
+        ("革新・オール沖縄", BLUE, "triangle-left", False),
     ]:
         line_x, line_y = [], []
         mark_x, mark_y, mark_size, mark_text = [], [], [], []
@@ -610,9 +620,10 @@ def statewide_margin_current(current):
 
 def statewide_margin_final(results, election_id):
     d = results[results["election_id"] == election_id]
-    t = d[d["attribute"].isin(["保守系", "オール沖縄系"])].groupby("attribute")["votes"].sum()
+    cons = d.loc[d["attribute"] == "保守系", "votes"].sum()
+    blue = d.loc[d["attribute"].isin(BLUE_BLOC_ATTRS), "votes"].sum()
     all_votes = d["votes"].sum()
-    return 0.0 if all_votes == 0 else 100 * (t.get("保守系", 0) - t.get("オール沖縄系", 0)) / all_votes
+    return 0.0 if all_votes == 0 else 100 * (cons - blue) / all_votes
 
 # -------------------- data --------------------
 results, elections, turnout, municipalities, geojson, layout_boxes = load_all()
@@ -750,7 +761,7 @@ s_left, s_right = st.columns([1.1, 1.0], gap="large")
 with s_left:
     render_boxed_map(shift_map_panel, geojson, layout_boxes, 510, "shift", swing, swing_threshold, global_max_shift)
     st.markdown(
-        f'<div class="legend-row"><span style="color:{RED};font-weight:800;">→ 保守方向</span><span style="color:{BLUE};font-weight:800;">← オール沖縄方向</span></div>',
+        f'<div class="legend-row"><span style="color:{RED};font-weight:800;">→ 保守方向</span><span style="color:{BLUE};font-weight:800;">← 革新・オール沖縄方向</span></div>',
         unsafe_allow_html=True
     )
 with s_right:
