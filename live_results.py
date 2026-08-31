@@ -39,7 +39,8 @@ PLOT_CONFIG = {
     "doubleClick": "reset+autosize",
     "displaylogo": False,
     "responsive": True,
-    "modeBarButtonsToRemove": ["select2d", "lasso2d"],
+    "displayModeBar": True,
+    "modeBarButtonsToRemove": ["select2d", "lasso2d", "autoScale2d", "hoverClosestCartesian", "hoverCompareCartesian", "toggleSpikelines"],
 }
 
 
@@ -52,7 +53,7 @@ with nav_back:
         st.rerun()
 with nav_label:
     st.markdown('<div class="portal-breadcrumb">沖縄選挙ポータル / 開票速報</div>', unsafe_allow_html=True)
-st.caption("v0.9.11 · NEW MAP · 模式配置")
+st.caption("v0.9.12 · NEW MAP · 模式配置")
 
 st.markdown(
     """
@@ -107,6 +108,8 @@ div[data-testid="stHorizontalBlock"]:has(div[data-testid="stButton"]) {
 .js-plotly-plot .nsewdrag, .js-plotly-plot svg {
   touch-action: none !important;
 }
+.js-plotly-plot .modebar { transform: scale(1.35); transform-origin: top right; }
+.js-plotly-plot .modebar-btn { padding: 3px !important; }
 @media (max-width: 800px) {
   .block-container {
     padding-left:.7rem;
@@ -142,8 +145,8 @@ def load_all():
     elections = pd.DataFrame(load_json("elections.json"))
     turnout = pd.DataFrame(load_json("turnout.json"))
     municipalities = pd.DataFrame(load_json("municipalities.json"))
-    geojson = load_json("map_layout_v0910.geojson")
-    layout_boxes = load_json("map_layout_v0910.json")
+    geojson = load_json("map_layout_v0912.geojson")
+    layout_boxes = load_json("map_layout_v0912.json")
     return results, elections, turnout, municipalities, geojson, layout_boxes
 
 def serial_to_date(v):
@@ -657,7 +660,7 @@ with st.sidebar:
 
     swing_threshold = st.select_slider("シフト表示の最低開票率", options=[50, 75, 90, 95, 100], value=50)
     sort_mode = st.selectbox("市町村一覧の並べ替え", ["得票規模", "開票率", "リード票", "接戦順", "残票"])
-    st.caption("地図は本島を中央、周辺離島を外周インセットへ再配置した沖縄県模式図です。1本指で移動、2本指で拡大・縮小できます。")
+    st.caption("地図は本島を中央、周辺離島を外周インセットへ再配置した沖縄県模式図です。1本指で移動、右上のアイコンで拡大・縮小できます。")
 
 current, msum, totals, overall_reporting = simulate_snapshot(results, municipalities, global_pct)
 compare_detail, swing = compare_context(results, turnout, current, msum, compare_id)
@@ -707,13 +710,13 @@ with right:
     remain_max = float(msum["remaining_votes"].max()) if len(msum) else 1
     if map_mode == "得票シェア":
         render_boxed_map(winner_map_panel, geojson, layout_boxes, 610, "winner", msum, current, compare_detail, compare_label)
-        st.markdown('<div class="map-caption">本島を中央、周辺離島を外周の枠へ配置した模式図。濃い赤・濃い青ほどリード幅が大きく、淡い色ほど接戦を示します。1本指で移動、2本指で拡大・縮小できます。</div>', unsafe_allow_html=True)
+        st.markdown('<div class="map-caption">本島を中央、周辺離島を外周の枠へ配置した模式図。濃い赤・濃い青ほどリード幅が大きく、淡い色ほど接戦を示します。1本指で移動、右上のアイコンで拡大・縮小できます。</div>', unsafe_allow_html=True)
     elif map_mode == "リード票":
         render_boxed_map(lead_bubble_panel, geojson, layout_boxes, 520, "lead", msum, max_value=lead_max)
-        st.markdown('<div class="map-caption">円の大きさ＝1位と2位の票差。本島・離島をまたいで同じサイズ基準を使います。1本指で移動、2本指で拡大・縮小できます。</div>', unsafe_allow_html=True)
+        st.markdown('<div class="map-caption">円の大きさ＝1位と2位の票差。本島・離島をまたいで同じサイズ基準を使います。1本指で移動、右上のアイコンで拡大・縮小できます。</div>', unsafe_allow_html=True)
     else:
         render_boxed_map(remaining_bubble_panel, geojson, layout_boxes, 520, "remain", msum, compare_detail, compare_label, max_value=remain_max)
-        st.markdown('<div class="map-caption">円の大きさ＝推定残票。ポップアップには投票率、前回選比、比較選挙の勝敗差も表示します。1本指で移動、2本指で拡大・縮小できます。</div>', unsafe_allow_html=True)
+        st.markdown('<div class="map-caption">円の大きさ＝推定残票。ポップアップには投票率、前回選比、比較選挙の勝敗差も表示します。1本指で移動、右上のアイコンで拡大・縮小できます。</div>', unsafe_allow_html=True)
 
 st.markdown('<div class="section-title">41市町村の開票状況</div>', unsafe_allow_html=True)
 st.markdown('<div class="section-deck">リードポイント、リード票、開票率、開票済み票、推定残票を一つの表で追います。</div>', unsafe_allow_html=True)
@@ -730,7 +733,14 @@ if sort_mode == "得票規模":
 elif sort_mode == "開票率":
     tbl = tbl.sort_values("開票率", ascending=False)
 elif sort_mode == "リード票":
-    tbl = tbl.sort_values("リード票", ascending=False)
+    leader_order = (
+        tbl[tbl["reported_votes"] > 0]
+        .groupby("leader_name")["lead_votes"].sum()
+        .sort_values(ascending=False).index.tolist()
+    )
+    leader_order += [n for n in tbl["leader_name"].unique() if n not in leader_order]
+    tbl["_leader_order"] = pd.Categorical(tbl["leader_name"], categories=leader_order, ordered=True)
+    tbl = tbl.sort_values(["_leader_order", "lead_votes"], ascending=[True, False])
 elif sort_mode == "接戦順":
     tbl = tbl[tbl["reported_votes"] > 0].sort_values("接戦度", ascending=True)
 elif sort_mode == "残票":

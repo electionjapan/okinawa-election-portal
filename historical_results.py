@@ -33,7 +33,8 @@ PLOT_CONFIG = {
     "doubleClick": "reset+autosize",
     "displaylogo": False,
     "responsive": True,
-    "modeBarButtonsToRemove": ["select2d", "lasso2d"],
+    "displayModeBar": True,
+    "modeBarButtonsToRemove": ["select2d", "lasso2d", "autoScale2d", "hoverClosestCartesian", "hoverCompareCartesian", "toggleSpikelines"],
 }
 
 
@@ -46,7 +47,7 @@ with nav_back:
         st.rerun()
 with nav_label:
     st.markdown('<div class="portal-breadcrumb">沖縄選挙ポータル / 過去の選挙結果</div>', unsafe_allow_html=True)
-st.caption("v0.9.11 · NEW MAP · 模式配置")
+st.caption("v0.9.12 · NEW MAP · 模式配置")
 
 st.markdown(
     """
@@ -91,6 +92,8 @@ div[data-testid="stHorizontalBlock"]:has(div[data-testid="stButton"]) {
 .js-plotly-plot .nsewdrag, .js-plotly-plot svg {
   touch-action: none !important;
 }
+.js-plotly-plot .modebar { transform: scale(1.35); transform-origin: top right; }
+.js-plotly-plot .modebar-btn { padding: 3px !important; }
 @media(max-width:800px) {
   .block-container {
     padding-left:.7rem;
@@ -127,8 +130,8 @@ def load_all():
         pd.DataFrame(load_json("elections.json")),
         pd.DataFrame(load_json("turnout.json")),
         pd.DataFrame(load_json("municipalities.json")),
-        load_json("map_layout_v0910.geojson"),
-        load_json("map_layout_v0910.json"),
+        load_json("map_layout_v0912.geojson"),
+        load_json("map_layout_v0912.json"),
     )
 
 def serial_to_date(v):
@@ -536,13 +539,13 @@ with right:
     global_max_lead=max(float(summary["lead_votes"].max()),1.0)
     if map_mode=="得票シェア":
         render_boxed_map(winner_map_panel,geojson,layout_boxes,600,"hist-share",summary,d)
-        st.caption("本島を中央、周辺離島を外周の枠へ配置した模式図。濃い赤・濃い青ほど勝者のリード幅が大きく、同数はグレー。1本指で移動、2本指で拡大・縮小できます。")
+        st.caption("本島を中央、周辺離島を外周の枠へ配置した模式図。濃い赤・濃い青ほど勝者のリード幅が大きく、同数はグレー。1本指で移動、右上のアイコンで拡大・縮小できます。")
     elif map_mode=="リード票":
         render_boxed_map(lead_bubble_panel,geojson,layout_boxes,510,"hist-lead",summary,global_max_lead=global_max_lead)
-        st.caption("円の大きさ＝1位と2位の票差。本島・離島で同じサイズ基準。1本指で移動、2本指で拡大・縮小できます。")
+        st.caption("円の大きさ＝1位と2位の票差。本島・離島で同じサイズ基準。1本指で移動、右上のアイコンで拡大・縮小できます。")
     else:
         render_boxed_map(turnout_map_panel,geojson,layout_boxes,510,"hist-turnout",summary)
-        st.caption("投票率データがDBにある選挙のみ表示します。1本指で移動、2本指で拡大・縮小できます。")
+        st.caption("投票率データがDBにある選挙のみ表示します。1本指で移動、右上のアイコンで拡大・縮小できます。")
 
 # ---------------- municipality table ----------------
 st.markdown('<div class="section-title">市町村別結果</div>',unsafe_allow_html=True)

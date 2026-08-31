@@ -1,7 +1,7 @@
 [
   {
     "path": "README.md",
-    "size_bytes": 3331
+    "size_bytes": 4852
   },
   {
     "path": "app.py",
@@ -12,12 +12,12 @@
     "size_bytes": 1756
   },
   {
-    "path": "data/map_layout_v0910.geojson",
-    "size_bytes": 254519
+    "path": "data/map_layout_v0912.geojson",
+    "size_bytes": 254453
   },
   {
-    "path": "data/map_layout_v0910.json",
-    "size_bytes": 1694
+    "path": "data/map_layout_v0912.json",
+    "size_bytes": 1908
   },
   {
     "path": "data/municipalities.json",
@@ -33,11 +33,11 @@
   },
   {
     "path": "historical_results.py",
-    "size_bytes": 28980
+    "size_bytes": 29275
   },
   {
     "path": "live_results.py",
-    "size_bytes": 39453
+    "size_bytes": 40145
   },
   {
     "path": "requirements.txt",
