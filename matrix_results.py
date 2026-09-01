@@ -99,7 +99,7 @@ with nav_back:
 with nav_label:
     st.markdown('<div class="portal-breadcrumb">沖縄選挙ポータル ／ 41市町村 保守寄り？革新より？</div>', unsafe_allow_html=True)
 st.markdown('<div class="portal-nav-spacer"></div>', unsafe_allow_html=True)
-st.caption("v0.9.17 · NEW MAP · 模式配置")
+st.caption("v0.9.18 · NEW MAP · 模式配置")
 
 st.markdown('<div class="page-kicker">OKINAWA ELECTION MATRIX</div>', unsafe_allow_html=True)
 st.markdown('<div class="page-title">41市町村　保守寄り？革新より？</div>', unsafe_allow_html=True)
@@ -117,12 +117,12 @@ def load_json(name):
 
 @st.cache_data
 def load_all():
-    winners = pd.DataFrame(load_json("matrix_winners.json"))
-    elections = pd.DataFrame(load_json("matrix_elections.json"))
-    municipalities = pd.DataFrame(load_json("matrix_municipalities.json"))
+    winners = pd.DataFrame(load_json("matrix_winners_v2.json"))
+    elections = pd.DataFrame(load_json("matrix_elections_v2.json"))
+    municipalities = pd.DataFrame(load_json("matrix_municipalities_v2.json"))
     geojson = load_json("map_layout_v0912.geojson")
     layout_boxes = load_json("map_layout_v0912.json")
-    prefecture = {r["election_id"]: r for r in load_json("matrix_prefecture.json")}
+    prefecture = {r["election_id"]: r for r in load_json("matrix_prefecture_v2.json")}
     return winners, elections, municipalities, geojson, layout_boxes, prefecture
 
 winners, elections, municipalities, geojson, layout_boxes, prefecture = load_all()
@@ -243,28 +243,27 @@ def _all_points(geometry):
         pts.extend(poly[0])
     return pts
 
-def _convex_hull(points):
-    pts = sorted(set((round(x, 5), round(y, 5)) for x, y in points))
-    if len(pts) <= 2:
-        return pts
-    def cross(o, a, b):
-        return (a[0]-o[0])*(b[1]-o[1]) - (a[1]-o[1])*(b[0]-o[0])
-    lower = []
-    for p in pts:
-        while len(lower) >= 2 and cross(lower[-2], lower[-1], p) <= 0:
-            lower.pop()
-        lower.append(p)
-    upper = []
-    for p in reversed(pts):
-        while len(upper) >= 2 and cross(upper[-2], upper[-1], p) <= 0:
-            upper.pop()
-        upper.append(p)
-    return lower[:-1] + upper[:-1]
+def _edges_of(geometry):
+    gtype = geometry.get("type")
+    coords = geometry.get("coordinates", [])
+    polys = [coords] if gtype == "Polygon" else coords
+    segs = []
+    for poly in polys:
+        ring = poly[0]
+        for i in range(len(ring) - 1):
+            a = (round(ring[i][0], 4), round(ring[i][1], 4))
+            b = (round(ring[i + 1][0], 4), round(ring[i + 1][1], 4))
+            segs.append((a, b))
+    return segs
 
-def _inflate(hull, factor=1.05):
-    cx = sum(p[0] for p in hull) / len(hull)
-    cy = sum(p[1] for p in hull) / len(hull)
-    return [(cx + (x - cx) * factor, cy + (y - cy) * factor) for x, y in hull]
+def _segment_owner_map(gj):
+    owner = {}
+    for f in gj["features"]:
+        name = f["properties"]["municipality_name"]
+        for a, b in _edges_of(f["geometry"]):
+            key = tuple(sorted([a, b]))
+            owner.setdefault(key, []).append(name)
+    return owner
 
 def matrix_map_panel(gj, wsub, race_type, height=560):
     by_name = {r["municipality_name"]: r for _, r in wsub.iterrows()}
@@ -298,24 +297,29 @@ def matrix_map_panel(gj, wsub, race_type, height=560):
                 mk_color.append(DISTRICT_COLORS.get(dist, GRAY))
                 mk_text.append(DISTRICT_NUM.get(dist, "?"))
     if race_type == "HR":
+        # 隣接する市町村同士の共有辺のうち、区が異なる境界だけを太線で描く(実際の区境そのもの)
+        owner = _segment_owner_map(gj)
+        for seg, names in owner.items():
+            if len(names) != 2:
+                continue
+            n1, n2 = names
+            d1, d2 = muni_district.get(n1), muni_district.get(n2)
+            if d1 and d2 and d1 != d2:
+                (ax, ay), (bx, by) = seg
+                fig.add_trace(go.Scatter(
+                    x=[ax, bx], y=[ay, by], mode="lines",
+                    line=dict(color="#222222", width=3.6),
+                    hoverinfo="skip", showlegend=False, name="",
+                ))
+        # 本島側の各区は、その区域の中心に番号バッジを1つ表示
         for dist, pts in mainland_pts_by_district.items():
             color = DISTRICT_COLORS.get(dist, GRAY)
-            hull = _convex_hull(pts)
-            if len(hull) < 3:
-                continue
-            hull = _inflate(hull, 1.05)
-            hx = [p[0] for p in hull] + [hull[0][0]]
-            hy = [p[1] for p in hull] + [hull[0][1]]
-            fig.add_trace(go.Scatter(
-                x=hx, y=hy, mode="lines", line=dict(color=color, width=4, dash="solid"),
-                fill="none", hoverinfo="skip", showlegend=False, name="",
-            ))
-            # ラベルは境界の最も外側(上端)の少し外に置く
-            top = max(hull, key=lambda p: p[1])
+            cx = sum(p[0] for p in pts) / len(pts)
+            cy = sum(p[1] for p in pts) / len(pts)
             fig.add_annotation(
-                x=top[0], y=top[1] + 1.4, text=f"<b>{DISTRICT_NUM.get(dist,'?')}</b>",
-                showarrow=False, font=dict(size=13, color="white", family="Meiryo, Yu Gothic, sans-serif"),
-                bgcolor=color, bordercolor="white", borderwidth=1.2, borderpad=3,
+                x=cx, y=cy, text=f"<b>{DISTRICT_NUM.get(dist,'?')}</b>",
+                showarrow=False, font=dict(size=14, color="white", family="Meiryo, Yu Gothic, sans-serif"),
+                bgcolor=color, bordercolor="white", borderwidth=1.4, borderpad=4,
             )
     if race_type == "HR" and mk_x:
         fig.add_trace(go.Scatter(
@@ -381,7 +385,7 @@ if map_race_type == "HR":
         legend_html += f'<span><span class="legend-line" style="background:{c};">{n}</span>{dist}</span>'
 legend_html += "</div>"
 st.markdown(legend_html, unsafe_allow_html=True)
-st.caption("1本指で移動。地図の上にあるスライダーで拡大・縮小できます。衆院選を選んだときは、本島側は区ごとに境界線で囲んで外側に番号を表示し、離島側は各市町村に番号マーカーを重ねて小選挙区の区割りを示します。")
+st.caption("1本指で移動。地図の上にあるスライダーで拡大・縮小できます。衆院選を選んだときは、本島側は区が変わる境界そのものを太線で示し、各区の中心に番号を表示します。離島側は各市町村に番号マーカーを重ねて小選挙区の区割りを示します。")
 
 # ---------------- table ----------------
 st.markdown('<div class="section-title">市町村別一覧</div>', unsafe_allow_html=True)

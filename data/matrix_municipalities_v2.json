@@ -1,0 +1,371 @@
+[
+  {
+    "municipality_code": "47201",
+    "municipality_name": "那覇市",
+    "display_group": "本島・近隣",
+    "hr_district": "沖縄県第1区",
+    "region8": "那覇",
+    "region8_order": 3,
+    "region8_suborder": 1
+  },
+  {
+    "municipality_code": "47205",
+    "municipality_name": "宜野湾市",
+    "display_group": "本島・近隣",
+    "hr_district": "沖縄県第2区",
+    "region8": "中部",
+    "region8_order": 2,
+    "region8_suborder": 1
+  },
+  {
+    "municipality_code": "47207",
+    "municipality_name": "石垣市",
+    "display_group": "石垣",
+    "hr_district": "沖縄県第4区",
+    "region8": "八重山",
+    "region8_order": 8,
+    "region8_suborder": 1
+  },
+  {
+    "municipality_code": "47208",
+    "municipality_name": "浦添市",
+    "display_group": "本島・近隣",
+    "hr_district": "沖縄県第2区",
+    "region8": "中部",
+    "region8_order": 2,
+    "region8_suborder": 2
+  },
+  {
+    "municipality_code": "47209",
+    "municipality_name": "名護市",
+    "display_group": "本島・近隣",
+    "hr_district": "沖縄県第3区",
+    "region8": "北部",
+    "region8_order": 1,
+    "region8_suborder": 1
+  },
+  {
+    "municipality_code": "47210",
+    "municipality_name": "糸満市",
+    "display_group": "本島・近隣",
+    "hr_district": "沖縄県第4区",
+    "region8": "南部本島",
+    "region8_order": 4,
+    "region8_suborder": 1
+  },
+  {
+    "municipality_code": "47211",
+    "municipality_name": "沖縄市",
+    "display_group": "本島・近隣",
+    "hr_district": "沖縄県第3区",
+    "region8": "中部",
+    "region8_order": 2,
+    "region8_suborder": 3
+  },
+  {
+    "municipality_code": "47212",
+    "municipality_name": "豊見城市",
+    "display_group": "本島・近隣",
+    "hr_district": "沖縄県第4区",
+    "region8": "南部本島",
+    "region8_order": 4,
+    "region8_suborder": 2
+  },
+  {
+    "municipality_code": "47213",
+    "municipality_name": "うるま市",
+    "display_group": "本島・近隣",
+    "hr_district": "沖縄県第3区",
+    "region8": "中部",
+    "region8_order": 2,
+    "region8_suborder": 4
+  },
+  {
+    "municipality_code": "47214",
+    "municipality_name": "宮古島市",
+    "display_group": "宮古",
+    "hr_district": "沖縄県第4区",
+    "region8": "宮古",
+    "region8_order": 7,
+    "region8_suborder": 1
+  },
+  {
+    "municipality_code": "47215",
+    "municipality_name": "南城市",
+    "display_group": "本島・近隣",
+    "hr_district": "沖縄県第4区",
+    "region8": "南部本島",
+    "region8_order": 4,
+    "region8_suborder": 3
+  },
+  {
+    "municipality_code": "47301",
+    "municipality_name": "国頭村",
+    "display_group": "本島・近隣",
+    "hr_district": "沖縄県第3区",
+    "region8": "北部",
+    "region8_order": 1,
+    "region8_suborder": 2
+  },
+  {
+    "municipality_code": "47302",
+    "municipality_name": "大宜味村",
+    "display_group": "本島・近隣",
+    "hr_district": "沖縄県第3区",
+    "region8": "北部",
+    "region8_order": 1,
+    "region8_suborder": 3
+  },
+  {
+    "municipality_code": "47303",
+    "municipality_name": "東村",
+    "display_group": "本島・近隣",
+    "hr_district": "沖縄県第3区",
+    "region8": "北部",
+    "region8_order": 1,
+    "region8_suborder": 4
+  },
+  {
+    "municipality_code": "47306",
+    "municipality_name": "今帰仁村",
+    "display_group": "本島・近隣",
+    "hr_district": "沖縄県第3区",
+    "region8": "北部",
+    "region8_order": 1,
+    "region8_suborder": 5
+  },
+  {
+    "municipality_code": "47308",
+    "municipality_name": "本部町",
+    "display_group": "本島・近隣",
+    "hr_district": "沖縄県第3区",
+    "region8": "北部",
+    "region8_order": 1,
+    "region8_suborder": 6
+  },
+  {
+    "municipality_code": "47311",
+    "municipality_name": "恩納村",
+    "display_group": "本島・近隣",
+    "hr_district": "沖縄県第3区",
+    "region8": "北部",
+    "region8_order": 1,
+    "region8_suborder": 7
+  },
+  {
+    "municipality_code": "47313",
+    "municipality_name": "宜野座村",
+    "display_group": "本島・近隣",
+    "hr_district": "沖縄県第3区",
+    "region8": "北部",
+    "region8_order": 1,
+    "region8_suborder": 8
+  },
+  {
+    "municipality_code": "47314",
+    "municipality_name": "金武町",
+    "display_group": "本島・近隣",
+    "hr_district": "沖縄県第3区",
+    "region8": "北部",
+    "region8_order": 1,
+    "region8_suborder": 9
+  },
+  {
+    "municipality_code": "47315",
+    "municipality_name": "伊江村",
+    "display_group": "本島・近隣",
+    "hr_district": "沖縄県第3区",
+    "region8": "北部",
+    "region8_order": 1,
+    "region8_suborder": 10
+  },
+  {
+    "municipality_code": "47324",
+    "municipality_name": "読谷村",
+    "display_group": "本島・近隣",
+    "hr_district": "沖縄県第2区",
+    "region8": "中部",
+    "region8_order": 2,
+    "region8_suborder": 5
+  },
+  {
+    "municipality_code": "47325",
+    "municipality_name": "嘉手納町",
+    "display_group": "本島・近隣",
+    "hr_district": "沖縄県第2区",
+    "region8": "中部",
+    "region8_order": 2,
+    "region8_suborder": 6
+  },
+  {
+    "municipality_code": "47326",
+    "municipality_name": "北谷町",
+    "display_group": "本島・近隣",
+    "hr_district": "沖縄県第2区",
+    "region8": "中部",
+    "region8_order": 2,
+    "region8_suborder": 7
+  },
+  {
+    "municipality_code": "47327",
+    "municipality_name": "北中城村",
+    "display_group": "本島・近隣",
+    "hr_district": "沖縄県第2区",
+    "region8": "中部",
+    "region8_order": 2,
+    "region8_suborder": 8
+  },
+  {
+    "municipality_code": "47328",
+    "municipality_name": "中城村",
+    "display_group": "本島・近隣",
+    "hr_district": "沖縄県第2区",
+    "region8": "中部",
+    "region8_order": 2,
+    "region8_suborder": 9
+  },
+  {
+    "municipality_code": "47329",
+    "municipality_name": "西原町",
+    "display_group": "本島・近隣",
+    "hr_district": "沖縄県第2区",
+    "region8": "中部",
+    "region8_order": 2,
+    "region8_suborder": 10
+  },
+  {
+    "municipality_code": "47348",
+    "municipality_name": "与那原町",
+    "display_group": "本島・近隣",
+    "hr_district": "沖縄県第4区",
+    "region8": "南部本島",
+    "region8_order": 4,
+    "region8_suborder": 4
+  },
+  {
+    "municipality_code": "47350",
+    "municipality_name": "南風原町",
+    "display_group": "本島・近隣",
+    "hr_district": "沖縄県第4区",
+    "region8": "南部本島",
+    "region8_order": 4,
+    "region8_suborder": 5
+  },
+  {
+    "municipality_code": "47353",
+    "municipality_name": "渡嘉敷村",
+    "display_group": "西部離島",
+    "hr_district": "沖縄県第1区",
+    "region8": "西部離島",
+    "region8_order": 5,
+    "region8_suborder": 2
+  },
+  {
+    "municipality_code": "47354",
+    "municipality_name": "座間味村",
+    "display_group": "西部離島",
+    "hr_district": "沖縄県第1区",
+    "region8": "西部離島",
+    "region8_order": 5,
+    "region8_suborder": 3
+  },
+  {
+    "municipality_code": "47355",
+    "municipality_name": "粟国村",
+    "display_group": "西部離島",
+    "hr_district": "沖縄県第1区",
+    "region8": "西部離島",
+    "region8_order": 5,
+    "region8_suborder": 4
+  },
+  {
+    "municipality_code": "47356",
+    "municipality_name": "渡名喜村",
+    "display_group": "西部離島",
+    "hr_district": "沖縄県第1区",
+    "region8": "西部離島",
+    "region8_order": 5,
+    "region8_suborder": 5
+  },
+  {
+    "municipality_code": "47357",
+    "municipality_name": "南大東村",
+    "display_group": "大東",
+    "hr_district": "沖縄県第1区",
+    "region8": "大東",
+    "region8_order": 6,
+    "region8_suborder": 2
+  },
+  {
+    "municipality_code": "47358",
+    "municipality_name": "北大東村",
+    "display_group": "大東",
+    "hr_district": "沖縄県第1区",
+    "region8": "大東",
+    "region8_order": 6,
+    "region8_suborder": 1
+  },
+  {
+    "municipality_code": "47359",
+    "municipality_name": "伊平屋村",
+    "display_group": "本島・近隣",
+    "hr_district": "沖縄県第3区",
+    "region8": "北部",
+    "region8_order": 1,
+    "region8_suborder": 11
+  },
+  {
+    "municipality_code": "47360",
+    "municipality_name": "伊是名村",
+    "display_group": "本島・近隣",
+    "hr_district": "沖縄県第3区",
+    "region8": "北部",
+    "region8_order": 1,
+    "region8_suborder": 12
+  },
+  {
+    "municipality_code": "47361",
+    "municipality_name": "久米島町",
+    "display_group": "西部離島",
+    "hr_district": "沖縄県第1区",
+    "region8": "西部離島",
+    "region8_order": 5,
+    "region8_suborder": 1
+  },
+  {
+    "municipality_code": "47362",
+    "municipality_name": "八重瀬町",
+    "display_group": "本島・近隣",
+    "hr_district": "沖縄県第4区",
+    "region8": "南部本島",
+    "region8_order": 4,
+    "region8_suborder": 6
+  },
+  {
+    "municipality_code": "47375",
+    "municipality_name": "多良間村",
+    "display_group": "宮古",
+    "hr_district": "沖縄県第4区",
+    "region8": "宮古",
+    "region8_order": 7,
+    "region8_suborder": 2
+  },
+  {
+    "municipality_code": "47381",
+    "municipality_name": "竹富町",
+    "display_group": "八重山",
+    "hr_district": "沖縄県第4区",
+    "region8": "八重山",
+    "region8_order": 8,
+    "region8_suborder": 2
+  },
+  {
+    "municipality_code": "47382",
+    "municipality_name": "与那国町",
+    "display_group": "八重山",
+    "hr_district": "沖縄県第4区",
+    "region8": "八重山",
+    "region8_order": 8,
+    "region8_suborder": 3
+  }
+]
