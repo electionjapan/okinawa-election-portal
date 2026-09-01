@@ -99,7 +99,7 @@ with nav_back:
 with nav_label:
     st.markdown('<div class="portal-breadcrumb">沖縄選挙ポータル ／ 41市町村 保守寄り？革新より？</div>', unsafe_allow_html=True)
 st.markdown('<div class="portal-nav-spacer"></div>', unsafe_allow_html=True)
-st.caption("v0.9.16 · NEW MAP · 模式配置")
+st.caption("v0.9.17 · NEW MAP · 模式配置")
 
 st.markdown('<div class="page-kicker">OKINAWA ELECTION MATRIX</div>', unsafe_allow_html=True)
 st.markdown('<div class="page-title">41市町村　保守寄り？革新より？</div>', unsafe_allow_html=True)
@@ -212,6 +212,11 @@ def apply_zoom(fig, zoom):
 muni_district = dict(zip(municipalities["municipality_name"], municipalities["hr_district"]))
 
 DISTRICT_NUM = {"沖縄県第1区": "1", "沖縄県第2区": "2", "沖縄県第3区": "3", "沖縄県第4区": "4"}
+_HONTO_BOX = layout_boxes.get("boxes", {}).get("本島", [29, 4, 70, 98])
+
+def _is_on_honto(cx, cy, box=_HONTO_BOX):
+    x0, y0, x1, y1 = box
+    return x0 <= cx <= x1 and y0 <= cy <= y1
 
 def _polygon_centroid(geometry):
     gtype = geometry.get("type")
@@ -229,10 +234,43 @@ def _polygon_centroid(geometry):
             best = (area, sum(xs) / len(xs), sum(ys) / len(ys))
     return (best[1], best[2]) if best else (0, 0)
 
+def _all_points(geometry):
+    gtype = geometry.get("type")
+    coords = geometry.get("coordinates", [])
+    polys = [coords] if gtype == "Polygon" else coords
+    pts = []
+    for poly in polys:
+        pts.extend(poly[0])
+    return pts
+
+def _convex_hull(points):
+    pts = sorted(set((round(x, 5), round(y, 5)) for x, y in points))
+    if len(pts) <= 2:
+        return pts
+    def cross(o, a, b):
+        return (a[0]-o[0])*(b[1]-o[1]) - (a[1]-o[1])*(b[0]-o[0])
+    lower = []
+    for p in pts:
+        while len(lower) >= 2 and cross(lower[-2], lower[-1], p) <= 0:
+            lower.pop()
+        lower.append(p)
+    upper = []
+    for p in reversed(pts):
+        while len(upper) >= 2 and cross(upper[-2], upper[-1], p) <= 0:
+            upper.pop()
+        upper.append(p)
+    return lower[:-1] + upper[:-1]
+
+def _inflate(hull, factor=1.05):
+    cx = sum(p[0] for p in hull) / len(hull)
+    cy = sum(p[1] for p in hull) / len(hull)
+    return [(cx + (x - cx) * factor, cy + (y - cy) * factor) for x, y in hull]
+
 def matrix_map_panel(gj, wsub, race_type, height=560):
     by_name = {r["municipality_name"]: r for _, r in wsub.iterrows()}
     fig = go.Figure()
     mk_x, mk_y, mk_color, mk_text = [], [], [], []
+    mainland_pts_by_district = {}
     for feature in gj["features"]:
         name = feature["properties"]["municipality_name"]
         r = by_name.get(name)
@@ -253,9 +291,32 @@ def matrix_map_panel(gj, wsub, race_type, height=560):
         if race_type == "HR":
             dist = muni_district.get(name)
             cx, cy = _polygon_centroid(feature["geometry"])
-            mk_x.append(cx); mk_y.append(cy)
-            mk_color.append(DISTRICT_COLORS.get(dist, GRAY))
-            mk_text.append(DISTRICT_NUM.get(dist, "?"))
+            if _is_on_honto(cx, cy):
+                mainland_pts_by_district.setdefault(dist, []).extend(_all_points(feature["geometry"]))
+            else:
+                mk_x.append(cx); mk_y.append(cy)
+                mk_color.append(DISTRICT_COLORS.get(dist, GRAY))
+                mk_text.append(DISTRICT_NUM.get(dist, "?"))
+    if race_type == "HR":
+        for dist, pts in mainland_pts_by_district.items():
+            color = DISTRICT_COLORS.get(dist, GRAY)
+            hull = _convex_hull(pts)
+            if len(hull) < 3:
+                continue
+            hull = _inflate(hull, 1.05)
+            hx = [p[0] for p in hull] + [hull[0][0]]
+            hy = [p[1] for p in hull] + [hull[0][1]]
+            fig.add_trace(go.Scatter(
+                x=hx, y=hy, mode="lines", line=dict(color=color, width=4, dash="solid"),
+                fill="none", hoverinfo="skip", showlegend=False, name="",
+            ))
+            # ラベルは境界の最も外側(上端)の少し外に置く
+            top = max(hull, key=lambda p: p[1])
+            fig.add_annotation(
+                x=top[0], y=top[1] + 1.4, text=f"<b>{DISTRICT_NUM.get(dist,'?')}</b>",
+                showarrow=False, font=dict(size=13, color="white", family="Meiryo, Yu Gothic, sans-serif"),
+                bgcolor=color, bordercolor="white", borderwidth=1.2, borderpad=3,
+            )
     if race_type == "HR" and mk_x:
         fig.add_trace(go.Scatter(
             x=mk_x, y=mk_y, mode="markers+text",
@@ -320,13 +381,13 @@ if map_race_type == "HR":
         legend_html += f'<span><span class="legend-line" style="background:{c};">{n}</span>{dist}</span>'
 legend_html += "</div>"
 st.markdown(legend_html, unsafe_allow_html=True)
-st.caption("1本指で移動。地図の上にあるスライダーで拡大・縮小できます。衆院選を選んだときは、各市町村に色分けした番号マーカーを重ねて小選挙区の区割りを示します。")
+st.caption("1本指で移動。地図の上にあるスライダーで拡大・縮小できます。衆院選を選んだときは、本島側は区ごとに境界線で囲んで外側に番号を表示し、離島側は各市町村に番号マーカーを重ねて小選挙区の区割りを示します。")
 
 # ---------------- table ----------------
 st.markdown('<div class="section-title">市町村別一覧</div>', unsafe_allow_html=True)
 st.markdown('<div class="section-deck">左端は地域区分と衆院小選挙区。表の先頭「沖縄県全体」行は、その選挙で県全体では誰が何ポイント差(何票差)で勝ったか。「全体傾向」は選んだ選挙の中でその市町村がどちらの陣営に多く投票したかの通算です。各セルは勝った候補者名(名字)・ポイント差・(得票差)です。</div>', unsafe_allow_html=True)
 
-muni_order = municipalities.sort_values(["hr_district", "display_group", "municipality_name"])
+muni_order = municipalities.sort_values(["region8_order", "region8_suborder"])
 cols_eids = selected_elections["election_id"].tolist()
 cols_labels = selected_elections["display_label"].tolist()
 
@@ -397,7 +458,7 @@ for _, m in muni_order.iterrows():
         overall_html = f'<td class="cell" style="background:{overall_color};">{overall_label}<br>{top_n}/{n_total}選挙</td>'
 
     tds = [
-        f'<td class="meta">{m["display_group"]}</td>',
+        f'<td class="meta">{m["region8"]}</td>',
         f'<td class="meta">{m["hr_district"]}</td>',
         f'<td class="meta"><b>{name}</b></td>',
         overall_html,

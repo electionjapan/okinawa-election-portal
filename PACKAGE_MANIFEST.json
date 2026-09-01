@@ -1,7 +1,7 @@
 [
   {
     "path": "README.md",
-    "size_bytes": 8752
+    "size_bytes": 9464
   },
   {
     "path": "app.py",
@@ -25,7 +25,7 @@
   },
   {
     "path": "data/matrix_municipalities.json",
-    "size_bytes": 6512
+    "size_bytes": 9707
   },
   {
     "path": "data/matrix_prefecture.json",
@@ -57,7 +57,7 @@
   },
   {
     "path": "matrix_results.py",
-    "size_bytes": 20573
+    "size_bytes": 23071
   },
   {
     "path": "requirements.txt",

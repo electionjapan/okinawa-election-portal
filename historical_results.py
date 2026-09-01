@@ -47,7 +47,7 @@ with nav_back:
         st.rerun()
 with nav_label:
     st.markdown('<div class="portal-breadcrumb">沖縄選挙ポータル / 過去の選挙結果</div>', unsafe_allow_html=True)
-st.caption("v0.9.16 · NEW MAP · 模式配置")
+st.caption("v0.9.17 · NEW MAP · 模式配置")
 
 st.markdown(
     """
