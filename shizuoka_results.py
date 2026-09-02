@@ -81,7 +81,7 @@ with nav_back:
 with nav_label:
     st.markdown('<div class="portal-breadcrumb">沖縄選挙ポータル ／ 静岡県 過去の選挙</div>', unsafe_allow_html=True)
 st.markdown('<div class="portal-nav-spacer"></div>', unsafe_allow_html=True)
-st.caption("v0.9.19 · SHIZUOKA")
+st.caption("v0.9.20 · SHIZUOKA")
 
 st.markdown('<div class="page-kicker">SHIZUOKA ELECTION ARCHIVE</div>', unsafe_allow_html=True)
 st.markdown('<div class="page-title">静岡県　過去の選挙</div>', unsafe_allow_html=True)
@@ -211,6 +211,25 @@ def apply_zoom(fig, zoom):
     return fig
 
 
+def _polygon_centroid(geometry):
+    gtype = geometry.get("type")
+    coords = geometry.get("coordinates", [])
+    polys = coords if gtype == "MultiPolygon" else [coords]
+    best = None
+    for poly in polys:
+        if not poly:
+            continue
+        ring = poly[0]
+        xs = [p[0] for p in ring]; ys = [p[1] for p in ring]
+        area = 0.0
+        for i in range(len(ring) - 1):
+            area += xs[i] * ys[i+1] - xs[i+1] * ys[i]
+        area = abs(area) / 2
+        if best is None or area > best[0]:
+            best = (area, sum(xs) / len(xs), sum(ys) / len(ys))
+    return (best[1], best[2]) if best else (0, 0)
+
+
 def muni_map_panel(gj, mdf, height=620):
     by_name = mdf.set_index("municipality_name")
     fig = go.Figure()
@@ -266,21 +285,97 @@ def gun_map_panel(gj, gdf, height=620):
     return _finish_map(fig, gj, height=height)
 
 
+def lead_bubble_panel_muni(gj, mdf, height=620):
+    d = mdf.copy()
+    cx, cy = [], []
+    for _, r in d.iterrows():
+        feat = next((f for f in gj["features"] if f["properties"]["municipality_name"] == r["municipality_name"]), None)
+        x, y = _polygon_centroid(feat["geometry"]) if feat else (None, None)
+        cx.append(x); cy.append(y)
+    d["x"], d["y"] = cx, cy
+    d = d.dropna(subset=["x", "y"])
+    max_v = max(d["margin_votes"].max(), 1)
+    fig = go.Figure()
+    for feature in gj["features"]:
+        xs, ys = _geometry_xy(feature["geometry"])
+        fig.add_trace(go.Scatter(x=xs, y=ys, mode="lines", line=dict(color="#D4D4D4", width=0.7),
+                                  fill="toself", fillcolor="#FAFAFA", hoverinfo="skip", showlegend=False, name=""))
+    for winner, color in [("永原稔", BLUE), ("山本敬三郎", RED), ("元場鉄太郎", GRAY)]:
+        sub = d[d["winner"] == winner]
+        if sub.empty:
+            continue
+        sizes = 8 + 42 * (sub["margin_votes"].astype(float) / max_v).pow(0.5)
+        detail = ("<b>" + sub["municipality_name"] + "</b><br>"
+                  + sub["winner"] + " +" + sub["margin_votes"].map(lambda x: f"{x:,.0f}") + "票<br>"
+                  + "リード差 " + sub["margin_pt"].map(lambda x: f"{x:.1f}pt"))
+        fig.add_trace(go.Scatter(
+            x=sub["x"], y=sub["y"], mode="markers",
+            marker=dict(size=sizes, color=color, opacity=0.4, line=dict(color=color, width=1.4)),
+            text=detail, hovertemplate="%{text}<extra></extra>", showlegend=False, name="",
+        ))
+    return _finish_map(fig, gj, height=height)
+
+
+def lead_bubble_panel_gun(gj, gdf, height=620):
+    d = gdf.copy()
+    cx, cy = [], []
+    for _, r in d.iterrows():
+        feat = next((f for f in gj["features"] if f["properties"]["gun_name"] == r["gun_name"]), None)
+        x, y = _polygon_centroid(feat["geometry"]) if feat else (None, None)
+        cx.append(x); cy.append(y)
+    d["x"], d["y"] = cx, cy
+    d = d.dropna(subset=["x", "y"])
+    max_v = max(d["margin_votes"].max(), 1)
+    fig = go.Figure()
+    for feature in gj["features"]:
+        xs, ys = _geometry_xy(feature["geometry"])
+        fig.add_trace(go.Scatter(x=xs, y=ys, mode="lines", line=dict(color="#D4D4D4", width=1.0),
+                                  fill="toself", fillcolor="#FAFAFA", hoverinfo="skip", showlegend=False, name=""))
+    for feature in geo_muni["features"]:
+        if feature["properties"].get("gun"):
+            continue
+        xs, ys = _geometry_xy(feature["geometry"])
+        fig.add_trace(go.Scatter(x=xs, y=ys, mode="lines", fill="toself", fillcolor="#F2F2F2",
+                                  line=dict(color="white", width=1.0), hoverinfo="skip", showlegend=False, name=""))
+    for winner, color in [("永原稔", BLUE), ("山本敬三郎", RED), ("元場鉄太郎", GRAY)]:
+        sub = d[d["winner"] == winner]
+        if sub.empty:
+            continue
+        sizes = 10 + 46 * (sub["margin_votes"].astype(float) / max_v).pow(0.5)
+        detail = ("<b>" + sub["gun_name"] + "</b><br>"
+                  + sub["winner"] + " +" + sub["margin_votes"].map(lambda x: f"{x:,.0f}") + "票<br>"
+                  + "リード差 " + sub["margin_pt"].map(lambda x: f"{x:.1f}pt"))
+        fig.add_trace(go.Scatter(
+            x=sub["x"], y=sub["y"], mode="markers",
+            marker=dict(size=sizes, color=color, opacity=0.4, line=dict(color=color, width=1.4)),
+            text=detail, hovertemplate="%{text}<extra></extra>", showlegend=False, name="",
+        ))
+    return _finish_map(fig, gj, height=height)
+
+
 zoom_pct = st.slider("拡大", 100, 400, 100, step=20, key="sz-zoom", format="%d%%")
-if map_unit == "市町村別":
-    fig = muni_map_panel(geo_muni, muni)
+map_content = st.radio("表示内容", ["勝者マップ", "リード票マップ"], horizontal=True, key="sz_map_content")
+if map_content == "勝者マップ":
+    if map_unit == "市町村別":
+        fig = muni_map_panel(geo_muni, muni)
+    else:
+        fig = gun_map_panel(geo_gun, gun)
 else:
-    fig = gun_map_panel(geo_gun, gun)
+    if map_unit == "市町村別":
+        fig = lead_bubble_panel_muni(geo_muni, muni)
+    else:
+        fig = lead_bubble_panel_gun(geo_gun, gun)
 fig = apply_zoom(fig, zoom_pct / 100.0)
 st.plotly_chart(fig, use_container_width=True, config=PLOT_CONFIG, key="sz-map")
 
+legend_note = "色の濃さ＝勝差の大きさ" if map_content == "勝者マップ" else "円の大きさ＝勝差(得票数)の大きさ"
 st.markdown(
     f"""
 <div class="legend-row">
   <span><span class="legend-dot" style="background:{BLUE};"></span>永原稔が優位</span>
   <span><span class="legend-dot" style="background:{RED};"></span>山本敬三郎が優位</span>
   <span><span class="legend-dot" style="background:{GRAY};"></span>元場鉄太郎が優位</span>
-  <span>色の濃さ＝勝差の大きさ</span>
+  <span>{legend_note}</span>
 </div>
 """,
     unsafe_allow_html=True,
@@ -308,8 +403,15 @@ st.markdown(gun_table, unsafe_allow_html=True)
 # ---------------- 市町村別一覧 ----------------
 st.markdown('<div class="section-title">市町村別一覧</div>', unsafe_allow_html=True)
 st.markdown('<div class="section-deck">「市」は郡に属さないため郡列は空欄です。</div>', unsafe_allow_html=True)
+sort_mode = st.selectbox("並び替え", ["郡順", "リード票順(永原→山本)"], key="sz_sort")
+if sort_mode == "郡順":
+    muni_sorted = muni.sort_values(["gun", "municipality_name"], na_position="first")
+else:
+    m = muni.copy()
+    m["_signed"] = m["votes_yamamoto"].astype(float) - m["votes_nagahara"].astype(float)
+    muni_sorted = m.sort_values("_signed", ascending=True)
 muni_rows = []
-for _, r in muni.sort_values(["gun", "municipality_name"], na_position="first").iterrows():
+for _, r in muni_sorted.iterrows():
     color = cell_color(r["winner"], r["margin_pt"])
     gun_disp = r["gun"] if pd.notna(r["gun"]) else "―"
     muni_rows.append(
