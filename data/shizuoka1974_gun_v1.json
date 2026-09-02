@@ -1,0 +1,122 @@
+[
+  {
+    "gun_name": "賀茂郡",
+    "votes_nagahara": 5671,
+    "votes_yamamoto": 31875,
+    "votes_motoba": 1012,
+    "valid_votes": 38558,
+    "winner": "山本敬三郎",
+    "margin_votes": 26204,
+    "margin_pt": 67.96
+  },
+  {
+    "gun_name": "田方郡",
+    "votes_nagahara": 16932,
+    "votes_yamamoto": 38058,
+    "votes_motoba": 4060,
+    "valid_votes": 59050,
+    "winner": "山本敬三郎",
+    "margin_votes": 21126,
+    "margin_pt": 35.78
+  },
+  {
+    "gun_name": "駿東郡",
+    "votes_nagahara": 18171,
+    "votes_yamamoto": 20116,
+    "votes_motoba": 2805,
+    "valid_votes": 41092,
+    "winner": "山本敬三郎",
+    "margin_votes": 1945,
+    "margin_pt": 4.73
+  },
+  {
+    "gun_name": "富士郡",
+    "votes_nagahara": 3114,
+    "votes_yamamoto": 2610,
+    "votes_motoba": 263,
+    "valid_votes": 5987,
+    "winner": "永原稔",
+    "margin_votes": 504,
+    "margin_pt": 8.42
+  },
+  {
+    "gun_name": "庵原郡",
+    "votes_nagahara": 17502,
+    "votes_yamamoto": 8615,
+    "votes_motoba": 1071,
+    "valid_votes": 27188,
+    "winner": "永原稔",
+    "margin_votes": 8887,
+    "margin_pt": 32.69
+  },
+  {
+    "gun_name": "志太郡",
+    "votes_nagahara": 10554,
+    "votes_yamamoto": 4961,
+    "votes_motoba": 799,
+    "valid_votes": 16314,
+    "winner": "永原稔",
+    "margin_votes": 5593,
+    "margin_pt": 34.28
+  },
+  {
+    "gun_name": "榛原郡",
+    "votes_nagahara": 35897,
+    "votes_yamamoto": 34362,
+    "votes_motoba": 2942,
+    "valid_votes": 73201,
+    "winner": "永原稔",
+    "margin_votes": 1535,
+    "margin_pt": 2.1
+  },
+  {
+    "gun_name": "小笠郡",
+    "votes_nagahara": 21431,
+    "votes_yamamoto": 26734,
+    "votes_motoba": 2395,
+    "valid_votes": 50560,
+    "winner": "山本敬三郎",
+    "margin_votes": 5303,
+    "margin_pt": 10.49
+  },
+  {
+    "gun_name": "周智郡",
+    "votes_nagahara": 5877,
+    "votes_yamamoto": 12556,
+    "votes_motoba": 716,
+    "valid_votes": 19149,
+    "winner": "山本敬三郎",
+    "margin_votes": 6679,
+    "margin_pt": 34.88
+  },
+  {
+    "gun_name": "磐田郡",
+    "votes_nagahara": 18167,
+    "votes_yamamoto": 27760,
+    "votes_motoba": 2280,
+    "valid_votes": 48207,
+    "winner": "山本敬三郎",
+    "margin_votes": 9593,
+    "margin_pt": 19.9
+  },
+  {
+    "gun_name": "浜名郡",
+    "votes_nagahara": 12289,
+    "votes_yamamoto": 14629,
+    "votes_motoba": 1971,
+    "valid_votes": 28889,
+    "winner": "山本敬三郎",
+    "margin_votes": 2340,
+    "margin_pt": 8.1
+  },
+  {
+    "gun_name": "引佐郡",
+    "votes_nagahara": 8698,
+    "votes_yamamoto": 17445,
+    "votes_motoba": 1094,
+    "valid_votes": 27237,
+    "winner": "山本敬三郎",
+    "margin_votes": 8747,
+    "margin_pt": 32.11
+  }
+]

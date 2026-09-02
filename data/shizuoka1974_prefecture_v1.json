@@ -1,0 +1,30 @@
+{
+  "election_date": "1974-07-07",
+  "eligible_voters": 2186840,
+  "turnout_rate": 0.8104,
+  "valid_votes_total": 1739962,
+  "winner": "山本敬三郎",
+  "candidates": [
+    {
+      "name": "山本敬三郎",
+      "party": "自由民主党",
+      "votes": 806371,
+      "pct": 0.463442,
+      "result": "当選"
+    },
+    {
+      "name": "永原稔",
+      "party": "無所属",
+      "votes": 802090,
+      "pct": 0.460981,
+      "result": "次点"
+    },
+    {
+      "name": "元場鉄太郎",
+      "party": "日本共産党",
+      "votes": 131501,
+      "pct": 0.075577,
+      "result": "落選"
+    }
+  ]
+}

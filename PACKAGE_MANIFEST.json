@@ -1,11 +1,11 @@
 [
   {
     "path": "README.md",
-    "size_bytes": 10703
+    "size_bytes": 11832
   },
   {
     "path": "app.py",
-    "size_bytes": 5067
+    "size_bytes": 5746
   },
   {
     "path": "data/elections.json",
@@ -40,6 +40,26 @@
     "size_bytes": 11626
   },
   {
+    "path": "data/shizuoka1974_gun_v1.json",
+    "size_bytes": 2721
+  },
+  {
+    "path": "data/shizuoka1974_municipalities_v1.json",
+    "size_bytes": 21254
+  },
+  {
+    "path": "data/shizuoka1974_prefecture_v1.json",
+    "size_bytes": 617
+  },
+  {
+    "path": "data/shizuoka_1975.geojson",
+    "size_bytes": 277471
+  },
+  {
+    "path": "data/shizuoka_1975_gun.geojson",
+    "size_bytes": 152169
+  },
+  {
     "path": "data/statewide_results.json",
     "size_bytes": 411424
   },
@@ -62,5 +82,9 @@
   {
     "path": "requirements.txt",
     "size_bytes": 41
+  },
+  {
+    "path": "shizuoka_results.py",
+    "size_bytes": 15416
   }
 ]
