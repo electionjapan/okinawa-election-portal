@@ -1,7 +1,7 @@
 [
   {
     "path": "README.md",
-    "size_bytes": 12538
+    "size_bytes": 12916
   },
   {
     "path": "app.py",
@@ -85,6 +85,6 @@
   },
   {
     "path": "shizuoka_results.py",
-    "size_bytes": 20437
+    "size_bytes": 21121
   }
 ]

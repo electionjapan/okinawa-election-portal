@@ -81,7 +81,7 @@ with nav_back:
 with nav_label:
     st.markdown('<div class="portal-breadcrumb">沖縄選挙ポータル ／ 静岡県 過去の選挙</div>', unsafe_allow_html=True)
 st.markdown('<div class="portal-nav-spacer"></div>', unsafe_allow_html=True)
-st.caption("v0.9.20 · SHIZUOKA")
+st.caption("v0.9.21 · SHIZUOKA")
 
 st.markdown('<div class="page-kicker">SHIZUOKA ELECTION ARCHIVE</div>', unsafe_allow_html=True)
 st.markdown('<div class="page-title">静岡県　過去の選挙</div>', unsafe_allow_html=True)
@@ -230,6 +230,16 @@ def _polygon_centroid(geometry):
     return (best[1], best[2]) if best else (0, 0)
 
 
+def _candidate_breakdown_html(r):
+    valid = float(r["valid_votes"]) if r["valid_votes"] else 0
+    lines = []
+    for label, col in [("永原稔", "votes_nagahara"), ("山本敬三郎", "votes_yamamoto"), ("元場鉄太郎", "votes_motoba")]:
+        v = float(r[col])
+        pct = (v / valid * 100) if valid else 0
+        lines.append(f"{label}　{int(v):,}票（{pct:.1f}%）")
+    return "<br>".join(lines)
+
+
 def muni_map_panel(gj, mdf, height=620):
     by_name = mdf.set_index("municipality_name")
     fig = go.Figure()
@@ -242,7 +252,8 @@ def muni_map_panel(gj, mdf, height=620):
             r = by_name.loc[name]
             fill = cell_color(r["winner"], r["margin_pt"])
             hover = (f"<b>{name}</b><br>{r['winner']}　+{r['margin_pt']:.1f}pt"
-                      f"（+{int(r['margin_votes']):,}票）")
+                      f"（+{int(r['margin_votes']):,}票）<br>"
+                      f"{_candidate_breakdown_html(r)}")
         fig.add_trace(go.Scatter(
             x=xs, y=ys, mode="lines", fill="toself", fillcolor=fill,
             line=dict(color="white", width=1.0),
@@ -264,7 +275,8 @@ def gun_map_panel(gj, gdf, height=620):
             r = by_name.loc[name]
             fill = cell_color(r["winner"], r["margin_pt"])
             hover = (f"<b>{name}</b><br>{r['winner']}　+{r['margin_pt']:.1f}pt"
-                      f"（+{int(r['margin_votes']):,}票）")
+                      f"（+{int(r['margin_votes']):,}票）<br>"
+                      f"{_candidate_breakdown_html(r)}")
         fig.add_trace(go.Scatter(
             x=xs, y=ys, mode="lines", fill="toself", fillcolor=fill,
             line=dict(color="white", width=1.6),
@@ -307,7 +319,8 @@ def lead_bubble_panel_muni(gj, mdf, height=620):
         sizes = 8 + 42 * (sub["margin_votes"].astype(float) / max_v).pow(0.5)
         detail = ("<b>" + sub["municipality_name"] + "</b><br>"
                   + sub["winner"] + " +" + sub["margin_votes"].map(lambda x: f"{x:,.0f}") + "票<br>"
-                  + "リード差 " + sub["margin_pt"].map(lambda x: f"{x:.1f}pt"))
+                  + "リード差 " + sub["margin_pt"].map(lambda x: f"{x:.1f}pt") + "<br>"
+                  + sub.apply(_candidate_breakdown_html, axis=1))
         fig.add_trace(go.Scatter(
             x=sub["x"], y=sub["y"], mode="markers",
             marker=dict(size=sizes, color=color, opacity=0.4, line=dict(color=color, width=1.4)),
@@ -344,7 +357,8 @@ def lead_bubble_panel_gun(gj, gdf, height=620):
         sizes = 10 + 46 * (sub["margin_votes"].astype(float) / max_v).pow(0.5)
         detail = ("<b>" + sub["gun_name"] + "</b><br>"
                   + sub["winner"] + " +" + sub["margin_votes"].map(lambda x: f"{x:,.0f}") + "票<br>"
-                  + "リード差 " + sub["margin_pt"].map(lambda x: f"{x:.1f}pt"))
+                  + "リード差 " + sub["margin_pt"].map(lambda x: f"{x:.1f}pt") + "<br>"
+                  + sub.apply(_candidate_breakdown_html, axis=1))
         fig.add_trace(go.Scatter(
             x=sub["x"], y=sub["y"], mode="markers",
             marker=dict(size=sizes, color=color, opacity=0.4, line=dict(color=color, width=1.4)),
