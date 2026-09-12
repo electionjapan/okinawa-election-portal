@@ -1,11 +1,11 @@
 [
   {
     "path": "README.md",
-    "size_bytes": 12916
+    "size_bytes": 14061
   },
   {
     "path": "app.py",
-    "size_bytes": 5746
+    "size_bytes": 5775
   },
   {
     "path": "data/elections.json",
@@ -72,8 +72,12 @@
     "size_bytes": 30881
   },
   {
+    "path": "live_data.py",
+    "size_bytes": 17088
+  },
+  {
     "path": "live_results.py",
-    "size_bytes": 41430
+    "size_bytes": 48461
   },
   {
     "path": "matrix_results.py",
@@ -81,7 +85,7 @@
   },
   {
     "path": "requirements.txt",
-    "size_bytes": 41
+    "size_bytes": 71
   },
   {
     "path": "shizuoka_results.py",

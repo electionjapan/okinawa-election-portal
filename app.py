@@ -106,7 +106,7 @@ div[data-testid="stButton"] > button {
         unsafe_allow_html=True,
     )
 
-    st.markdown('<div class="portal-kicker">OKINAWA ELECTION PORTAL · v0.9.21 · NEW MAP</div>', unsafe_allow_html=True)
+    st.markdown('<div class="portal-kicker">OKINAWA ELECTION PORTAL · v0.9.22 · LIVE SHEET</div>', unsafe_allow_html=True)
     st.markdown('<div class="portal-title">沖縄選挙ポータル</div>', unsafe_allow_html=True)
     st.markdown(
         '<div class="portal-deck">沖縄の選挙を、開票速報と過去の確定結果の2つの入口から見るためのポータルです。</div>',
@@ -122,7 +122,7 @@ div[data-testid="stButton"] > button {
 <div class="portal-card portal-card-live">
   <div class="portal-card-title">開票速報</div>
   <div class="portal-card-copy">
-    開票中の得票、リード幅、推定残票、過去選挙からの保革シフトを追う速報画面。
+    Google Sheets連携で、6候補の得票・開票率・残票・推計無効票・過去選挙からのシフトを追う速報画面。
   </div>
 </div>
 """,
@@ -177,7 +177,7 @@ div[data-testid="stButton"] > button {
             go("shizuoka")
 
     st.markdown(
-        '<div class="portal-foot">Okinawa Election Portal — v0.9.21</div>',
+        '<div class="portal-foot">Okinawa Election Portal — v0.9.22</div>',
         unsafe_allow_html=True,
     )
 

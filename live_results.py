@@ -7,6 +7,13 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
+from live_data import GOOGLE_SHEET_ID, LiveSheetError, build_live_models, load_google_workbook
+
+try:
+    from streamlit_autorefresh import st_autorefresh
+except Exception:
+    st_autorefresh = None
+
 APP_DIR = Path(__file__).resolve().parent
 DATA_DIR = APP_DIR / "data"
 
@@ -53,7 +60,7 @@ with nav_back:
         st.rerun()
 with nav_label:
     st.markdown('<div class="portal-breadcrumb">沖縄選挙ポータル / 開票速報</div>', unsafe_allow_html=True)
-st.caption("v0.9.21 · NEW MAP · 模式配置")
+st.caption("v0.9.22 · LIVE SHEET · NEW MAP")
 
 st.markdown(
     """
@@ -79,6 +86,10 @@ div[data-testid="stHorizontalBlock"]:has(div[data-testid="stButton"]) {
 .nyt-title { font-family: Georgia, "Yu Mincho", serif; font-weight: 800; letter-spacing:-0.02em; line-height:1.05; }
 .live-badge { display:inline-block; padding:3px 8px; border-radius:4px; color:white; background:#C93238; font-size:.75rem; font-weight:800; margin-right:8px; }
 .demo-badge { display:inline-block; padding:3px 8px; border-radius:4px; color:#5a4700; background:#fff0a8; font-size:.75rem; font-weight:800; }
+.live-source-badge { display:inline-block; padding:3px 8px; border-radius:4px; color:#164c2d; background:#daf4e3; font-size:.75rem; font-weight:800; }
+.estimate-badge { display:inline-block; padding:2px 7px; border-radius:999px; color:#5a4700; background:#fff0a8; font-size:.72rem; font-weight:800; }
+.refresh-line { color:#666; font-size:.84rem; margin:.25rem 0 .6rem; }
+.status-chip { display:inline-block; padding:1px 7px; border-radius:999px; background:#efefef; font-size:.74rem; font-weight:700; }
 .top-rule { border-top: 4px solid #111; margin: 8px 0 14px 0; }
 .sub-rule { border-top: 1px solid #DADADA; margin: 12px 0 18px 0; }
 .kicker { color:#6B6B6B; font-size:.94rem; }
@@ -284,7 +295,7 @@ def simulate_snapshot(results, municipalities, global_pct):
     overall_reporting = 100 * msum["reported_votes"].sum() / msum["final_valid_votes"].sum()
     return current, msum, totals, overall_reporting
 
-def compare_context(results, turnout, current, msum, compare_id):
+def compare_context_live(results, turnout, current, msum, compare_id):
     # current two-bloc margin
     dcur = current[current["attribute"].isin(["保守系", "オール沖縄系"])].copy()
     curr_margin = (
@@ -344,11 +355,11 @@ def compare_context(results, turnout, current, msum, compare_id):
     )
     swing["shift"] = swing["current_margin"] - swing["previous_margin"]
 
-    # turnout comparison (available only where data exists)
-    cur_turn = turnout[turnout["election_id"] == CURRENT_ELECTION][["municipality_code", "turnout_rate"]].rename(columns={"turnout_rate": "current_turnout"})
+    # Current turnout comes from the 2026 live sheet; comparison turnout comes from historical data.
+    cur_turn = msum[["municipality_code", "turnout_rate"]].rename(columns={"turnout_rate": "current_turnout"})
     prev_turn = turnout[turnout["election_id"] == compare_id][["municipality_code", "turnout_rate"]].rename(columns={"turnout_rate": "previous_turnout"})
     turnout_comp = cur_turn.merge(prev_turn, on="municipality_code", how="left")
-    turnout_comp["turnout_diff_pt"] = 100 * (turnout_comp["current_turnout"] - turnout_comp["previous_turnout"])
+    turnout_comp["turnout_diff_pt"] = 100 * (pd.to_numeric(turnout_comp["current_turnout"], errors="coerce") - pd.to_numeric(turnout_comp["previous_turnout"], errors="coerce"))
 
     detail = (
         prev_summary
@@ -474,6 +485,7 @@ def lead_bubble_panel(geojson, msum, height=420, max_value=1):
             sub = d[~d["leader_attribute"].isin(["保守系", *BLUE_BLOC_ATTRS, "同数"])]
         else:
             sub = d[d["leader_attribute"] == attr]
+        sub = sub[pd.to_numeric(sub["reported_votes"], errors="coerce").fillna(0) > 0]
         if sub.empty:
             continue
         sizes = 8 + 42 * (sub["lead_votes"].astype(float) / max(max_value, 1)).pow(0.5)
@@ -515,15 +527,16 @@ def remaining_bubble_panel(geojson, msum, compare_detail, compare_label, height=
             sub = d[~d["leader_attribute"].isin(["保守系", *BLUE_BLOC_ATTRS, "同数"])]
         else:
             sub = d[d["leader_attribute"] == attr]
+        sub = sub[pd.to_numeric(sub["remaining_votes"], errors="coerce").notna()]
         if sub.empty:
             continue
         sizes = 8 + 42 * (sub["remaining_votes"].astype(float) / max(max_value, 1)).pow(0.5)
         detail = (
             "<b style='font-size:16px'>" + sub["municipality_name"] + "</b><br>"
-            + "<span style='font-size:15px'><b>推定残票 " + sub["remaining_votes"].map(lambda x: f"{x:,.0f}") + "票</b></span><br>"
+            + "<span style='font-size:15px'><b>残票 " + sub["remaining_votes"].map(lambda x: f"{x:,.0f}") + "票</b></span><br>"
             + "<span style='font-size:14px'>開票率 " + sub["reporting_pct"].map(lambda x: f"{x:.1f}%")
             + "　/　開票済み " + sub["reported_votes"].map(lambda x: f"{x:,.0f}") + "票"
-            + "　/　最終総数 " + sub["final_valid_votes"].map(lambda x: f"{x:,.0f}") + "票</span><br><br>"
+            + "　/　投票者数 " + sub["voters_total"].map(lambda x: "―" if pd.isna(x) else f"{x:,.0f}") + "票</span><br><br>"
             + "<span style='font-size:13px'>今回投票率 " + sub["current_turnout"].map(_fmt_turnout)
             + "　（前回選比 " + sub["turnout_diff_pt"].map(_fmt_diff_pt) + "）</span><br>"
             + "<span style='font-size:13px'>" + compare_label + "："
@@ -627,19 +640,28 @@ def render_boxed_map(panel_fn, geojson, layout_boxes, height, key_prefix, *args,
         key=f"{key_prefix}-boxed",
     )
 
-def render_candidate_totals(totals):
+def render_candidate_totals(totals, previous_totals=None):
     html = []
+    prev = previous_totals or {}
     for _, r in totals.iterrows():
         color = candidate_color(r["attribute"])
+        meta = " / ".join([x for x in [str(r.get("incumbency") or ""), str(r.get("party") or "")] if x])
+        endorsement = str(r.get("endorsement") or "").strip()
+        published = bool(r.get("has_published", True))
+        delta = int(r["current_votes"]) - int(prev.get(r["candidate_name"], int(r["current_votes"]))) if published else 0
+        delta_html = f'<span style="color:#777;font-size:.78rem;">前回更新から +{delta:,}</span>' if delta > 0 else ''
+        vote_text = f"{int(r['current_votes']):,}" if published else "―"
+        pct_text = f"{float(r['pct']):.2f}%" if published else "―"
         html.append(f"""
         <div class="result-card" style="border-left:7px solid {color}; padding-left:12px;">
-          <div style="display:grid;grid-template-columns:1.5fr .8fr .65fr;gap:10px;align-items:end;">
+          <div style="display:grid;grid-template-columns:1.6fr .8fr .65fr;gap:10px;align-items:end;">
             <div>
               <span class="candidate-name">{r['candidate_name']}</span>{attribute_badge(r['attribute'])}<br>
-              <span class="candidate-party">{r['party'] or r['attribute']}</span>
+              <span class="candidate-party">{meta}</span>
+              {f'<br><span class="candidate-party">{endorsement}</span>' if endorsement else ''}
             </div>
-            <div class="big-num">{int(r['current_votes']):,}</div>
-            <div class="pct-num">{float(r['pct']):.2f}%</div>
+            <div class="big-num">{vote_text}<br>{delta_html}</div>
+            <div class="pct-num">{pct_text}</div>
           </div>
           <div class="progress-outer"><div class="progress-inner" style="width:{min(float(r['pct']),100):.2f}%;background:{color};"></div></div>
         </div>
@@ -682,41 +704,95 @@ def statewide_margin_final(results, election_id):
 # -------------------- data --------------------
 results, elections, turnout, municipalities, geojson, layout_boxes = load_all()
 
-with st.sidebar:
-    st.markdown("### デモ設定")
-    global_pct = st.slider("擬似・全県開票進行", 0, 100, 72, 1)
+# Automatic refresh is deliberately modest so the public Google Sheet is not hammered.
+if st_autorefresh is not None:
+    st_autorefresh(interval=45 * 1000, limit=None, key="live-sheet-autorefresh")
 
-    current_meta = elections[elections["election_id"] == CURRENT_ELECTION].iloc[0]
-    prior = elections[elections["date_serial"] < current_meta["date_serial"]].copy()
-    prior = prior.sort_values("date_serial", ascending=False)
+with st.sidebar:
+    st.markdown("### 開票速報")
+    if st.button("↻ Google Sheetsを再取得", key="refresh_live_sheet", use_container_width=True):
+        st.cache_data.clear()
+        st.rerun()
+
+    current_meta = elections[elections["election_id"] == "GOV2022"].iloc[0]
+    prior = elections[elections["election_type"] == "知事選"].copy().sort_values("date_serial", ascending=False)
     prior["label"] = prior.apply(election_label, axis=1)
     compare_options = prior[["label", "election_id"]]
-    default_idx = compare_options["election_id"].tolist().index("GOV2018") if "GOV2018" in compare_options["election_id"].tolist() else 0
-    compare_label = st.selectbox("比較する過去選挙", compare_options["label"].tolist(), index=default_idx)
+    default_idx = compare_options["election_id"].tolist().index("GOV2022") if "GOV2022" in compare_options["election_id"].tolist() else 0
+    compare_label = st.selectbox("比較する過去知事選", compare_options["label"].tolist(), index=default_idx)
     compare_id = compare_options.loc[compare_options["label"] == compare_label, "election_id"].iloc[0]
 
-    swing_threshold = st.select_slider("シフト表示の最低開票率", options=[50, 75, 90, 95, 100], value=50)
-    sort_mode = st.selectbox("市町村一覧の並べ替え", ["得票規模", "開票率", "リード票", "接戦順", "残票"])
-    st.caption("地図は本島を中央、周辺離島を外周インセットへ再配置した沖縄県模式図です。1本指で移動。地図の上にあるスライダーで拡大・縮小できます。")
+    swing_threshold = st.select_slider("シフト表示の最低開票率", options=[25, 50, 75, 90, 95, 100], value=50)
+    sort_mode = st.selectbox("市町村一覧の並べ替え", ["得票規模", "開票率", "リード票", "接戦順", "残票", "県の並び順"])
+    st.caption("原則45秒ごとに自動更新。手動更新ボタンでも即時再取得できます。")
+    st.caption("地図は本島を中央、周辺離島を外周インセットへ再配置した模式図です。")
 
-current, msum, totals, overall_reporting = simulate_snapshot(results, municipalities, global_pct)
-compare_detail, swing = compare_context(results, turnout, current, msum, compare_id)
+@st.cache_data(ttl=40, show_spinner=False)
+def get_live_book(sheet_id):
+    return load_google_workbook(sheet_id)
+
+try:
+    live_book = get_live_book(GOOGLE_SHEET_ID)
+    st.session_state["live_last_good_book"] = live_book
+    st.session_state["live_last_error"] = ""
+except Exception as exc:
+    st.session_state["live_last_error"] = str(exc)
+    live_book = st.session_state.get("live_last_good_book")
+
+if live_book is None:
+    st.error("Google Sheetsから開票速報データを取得できません。スプレッドシートの共有設定を『リンクを知っている全員が閲覧可』にしたうえで再取得してください。")
+    if st.session_state.get("live_last_error"):
+        st.caption(f"取得エラー: {st.session_state['live_last_error']}")
+    st.stop()
+
+try:
+    models = build_live_models(live_book, municipalities)
+except Exception as exc:
+    st.error(f"Google Sheetsの列構成を読み取れませんでした: {exc}")
+    st.stop()
+
+current = models.current
+msum = models.msum
+totals = models.totals
+overall_reporting = models.overall_reporting
+compare_detail, swing = compare_context_live(results, turnout, current, msum, compare_id)
 state_shift = statewide_margin_current(current) - statewide_margin_final(results, compare_id)
 global_max_shift = max(float(swing["shift"].abs().max()) if not swing.empty else 1.0, 1.0)
 
+# Candidate deltas are session-local: enough to show changes between automatic refreshes without
+# requiring a history sheet or writing anything back to Google Sheets.
+prev_totals = st.session_state.get("live_previous_candidate_totals", {})
+current_total_map = {r["candidate_name"]: int(r["current_votes"]) for _, r in totals.iterrows()}
+
 # -------------------- page --------------------
-st.markdown('<span class="live-badge">開票速報</span><span class="demo-badge">2022実績を使ったデモ</span>', unsafe_allow_html=True)
-st.markdown('<div class="nyt-title" style="font-size:2.25rem;margin-top:8px;">沖縄県知事選 開票速報</div>', unsafe_allow_html=True)
-st.markdown('<div class="kicker">2022年9月11日投開票の確定結果を擬似開票に変換した試作版です。本番ではリアルタイム入力値に置き換わります。</div>', unsafe_allow_html=True)
+st.markdown('<span class="live-badge">開票速報</span><span class="live-source-badge">Google Sheets LIVE</span>', unsafe_allow_html=True)
+st.markdown('<div class="nyt-title" style="font-size:2.25rem;margin-top:8px;">2026 沖縄県知事選 開票速報</div>', unsafe_allow_html=True)
+st.markdown(
+    f'<div class="kicker">2026年9月13日投開票。公式速報を入力するGoogleスプレッドシートを約45秒間隔で読み込みます。最終更新 <strong>{models.latest_update}</strong>。</div>',
+    unsafe_allow_html=True,
+)
 st.markdown('<div class="top-rule"></div>', unsafe_allow_html=True)
 
-leader = totals.iloc[0] if not totals.empty and totals["current_votes"].sum() else None
+ranked_totals = totals.sort_values(["current_votes", "candidate_id"], ascending=[False, True])
+leader = ranked_totals.iloc[0] if not ranked_totals.empty and ranked_totals["current_votes"].sum() else None
 state_tie = (
-    len(totals) >= 2 and int(totals.iloc[0]["current_votes"]) == int(totals.iloc[1]["current_votes"])
+    len(ranked_totals) >= 2 and int(ranked_totals.iloc[0]["current_votes"]) == int(ranked_totals.iloc[1]["current_votes"])
 ) if leader is not None else False
 leader_color = "#8E8E8E" if state_tie else (candidate_color(leader["attribute"]) if leader is not None else "#808080")
 leader_name = "同数" if state_tie else (leader["candidate_name"] if leader is not None else "未開票")
-banner_label = "現在のリード" if overall_reporting < 99.95 else "確定結果"
+banner_label = "現在のリード" if overall_reporting is None or overall_reporting < 99.95 else "確定結果"
+reporting_text = "―" if overall_reporting is None else f"{overall_reporting:.1f}%"
+all_voters_known = bool(len(msum)) and bool(msum["voters_total"].notna().all())
+remaining_total = pd.to_numeric(msum["remaining_votes"], errors="coerce").sum(min_count=1) if all_voters_known else pd.NA
+remaining_text = "―" if pd.isna(remaining_total) else f"{int(round(float(remaining_total))):,}票"
+counted_total = pd.to_numeric(msum["reported_votes"], errors="coerce").sum(min_count=1)
+counted_text = "―" if pd.isna(counted_total) else f"{int(round(float(counted_total))):,}票"
+
+invalid_range = "未算出"
+if models.invalid_low is not None and models.invalid_high is not None:
+    invalid_range = f"約{int(round(models.invalid_low)):,}～{int(round(models.invalid_high)):,}票"
+    if models.invalid_center is not None:
+        invalid_range += f"（中心 {int(round(models.invalid_center)):,}票）"
 
 st.markdown(
     f"""
@@ -725,114 +801,150 @@ st.markdown(
   <div class="winner-main">{leader_name}</div>
 </div>
 <div class="stat-strip">
-  <span>全県開票率 <strong>{overall_reporting:.1f}%</strong></span>
-  <span>開票済み <strong>{int(msum['reported_votes'].sum()):,}票</strong></span>
-  <span>推定残票 <strong>{int(msum['remaining_votes'].sum()):,}票</strong></span>
-  <span>比較 <strong>{compare_label}</strong></span>
+  <span>全県開票率 <strong>{reporting_text}</strong></span>
+  <span>開票済み <strong>{counted_text}</strong></span>
+  <span>残票 <strong>{remaining_text}</strong></span>
+  <span>確定自治体 <strong>{models.confirmed_count} / 41</strong></span>
+  <span><span class="estimate-badge">独自推計</span> 無効票 <strong>{invalid_range}</strong></span>
 </div>
 """,
-    unsafe_allow_html=True
+    unsafe_allow_html=True,
 )
+if st.session_state.get("live_last_error"):
+    st.warning("直近のGoogle Sheets取得に失敗したため、最後に正常取得できたデータを表示しています。")
 
 left, right = st.columns([1.05, 1.15], gap="large")
 with left:
     st.markdown('<div class="eyebrow">全県集計</div>', unsafe_allow_html=True)
-    st.markdown(render_candidate_totals(totals), unsafe_allow_html=True)
-    st.caption("得票率は現時点で開票済みの候補者票を分母に計算。")
+    st.markdown(render_candidate_totals(totals, prev_totals), unsafe_allow_html=True)
+    st.caption("開票途中の％は『開票済み候補者票の構成比』です。最終確定後の正式な得票率とは区別しています。")
 
 with right:
     st.markdown('<div class="eyebrow">市町村別マップ</div>', unsafe_allow_html=True)
-    map_mode = st.radio("表示切替", ["得票シェア", "リード票", "推定残票"], horizontal=True, label_visibility="collapsed")
+    map_mode = st.radio("表示切替", ["得票シェア", "リード票", "残票"], horizontal=True, label_visibility="collapsed")
     lead_max = float(msum["lead_votes"].max()) if len(msum) else 1
-    remain_max = float(msum["remaining_votes"].max()) if len(msum) else 1
+    remain_max = float(pd.to_numeric(msum["remaining_votes"], errors="coerce").max()) if pd.to_numeric(msum["remaining_votes"], errors="coerce").notna().any() else 1
     if map_mode == "得票シェア":
         render_boxed_map(winner_map_panel, geojson, layout_boxes, 610, "winner", msum, current, compare_detail, compare_label)
-        st.markdown('<div class="map-caption">本島を中央、周辺離島を外周の枠へ配置した模式図。濃い赤・濃い青ほどリード幅が大きく、淡い色ほど接戦を示します。1本指で移動。地図の上にあるスライダーで拡大・縮小できます。</div>', unsafe_allow_html=True)
+        st.markdown('<div class="map-caption">濃い赤・濃い青ほどリード幅が大きく、淡い色ほど接戦。未開票はグレーです。</div>', unsafe_allow_html=True)
     elif map_mode == "リード票":
         render_boxed_map(lead_bubble_panel, geojson, layout_boxes, 520, "lead", msum, max_value=lead_max)
-        st.markdown('<div class="map-caption">円の大きさ＝1位と2位の票差。本島・離島をまたいで同じサイズ基準を使います。1本指で移動。地図の上にあるスライダーで拡大・縮小できます。</div>', unsafe_allow_html=True)
+        st.markdown('<div class="map-caption">円の大きさ＝現時点の1位と2位の票差。</div>', unsafe_allow_html=True)
     else:
         render_boxed_map(remaining_bubble_panel, geojson, layout_boxes, 520, "remain", msum, compare_detail, compare_label, max_value=remain_max)
-        st.markdown('<div class="map-caption">円の大きさ＝推定残票。ポップアップには投票率、前回選比、比較選挙の勝敗差も表示します。1本指で移動。地図の上にあるスライダーで拡大・縮小できます。</div>', unsafe_allow_html=True)
+        st.markdown('<div class="map-caption">円の大きさ＝公式系の残票。推計無効票は残票の内数であり、残票から勝手に差し引いていません。</div>', unsafe_allow_html=True)
 
 st.markdown('<div class="section-title">41市町村の開票状況</div>', unsafe_allow_html=True)
-st.markdown('<div class="section-deck">リードポイント、リード票、開票率、開票済み票、推定残票を一つの表で追います。</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-deck">6候補の得票、開票率、残票、推計無効票を同じ表で追います。公式値と独自推計を分けて表示します。</div>', unsafe_allow_html=True)
 
 tbl = msum.copy()
-tbl["リード"] = tbl.apply(lambda r: "未開票" if r["reported_votes"] == 0 else f"{r['leader_name']} +{r['lead_points']:.1f}pt", axis=1)
-tbl["リード票"] = tbl["lead_votes"].astype(int)
-tbl["開票率"] = tbl["reporting_pct"]
-tbl["開票済み票"] = tbl["reported_votes"].astype(int)
-tbl["推定残票"] = tbl["remaining_votes"].astype(int)
+tbl["リード"] = tbl.apply(lambda r: "未開票" if float(r["reported_votes"] or 0) == 0 else f"{r['leader_name']} +{r['lead_points']:.1f}pt", axis=1)
+tbl["リード票"] = tbl["lead_votes"].fillna(0).astype(int)
+tbl["開票率"] = pd.to_numeric(tbl["reporting_pct"], errors="coerce").where(tbl["reporting_available"], pd.NA)
+tbl["開票済み票"] = pd.to_numeric(tbl["reported_votes"], errors="coerce")
+tbl["残票"] = pd.to_numeric(tbl["remaining_votes"], errors="coerce")
+tbl["推計無効票"] = tbl.apply(
+    lambda r: (
+        f"約{int(r['invalid_low']):,}～{int(r['invalid_high']):,}票"
+        if pd.notna(r["invalid_low"]) and pd.notna(r["invalid_high"]) else "―"
+    ), axis=1
+)
+tbl["状態"] = tbl["status"]
 tbl["接戦度"] = tbl["lead_points"].abs()
 tbl = tbl.merge(swing[["municipality_code", "current_margin"]], on="municipality_code", how="left")
+
+# Candidate vote columns: official inputs from the live sheet, filing order from 00_候補者.
+wide_votes = current.pivot(index="municipality_code", columns="candidate_name", values="display_votes").reset_index()
+tbl = tbl.merge(wide_votes, on="municipality_code", how="left")
+
 if sort_mode == "得票規模":
-    tbl = tbl.sort_values("final_valid_votes", ascending=False)
+    tbl = tbl.sort_values("voters_total", ascending=False, na_position="last")
 elif sort_mode == "開票率":
-    tbl = tbl.sort_values("開票率", ascending=False)
+    tbl = tbl.sort_values("開票率", ascending=False, na_position="last")
 elif sort_mode == "リード票":
-    # 保革（オール沖縄・革新 対 保守）の軸で符号付きに並べる。
-    # 上ほどオール沖縄・革新が優位、下ほど保守が優位。表示は実際にリードした候補者名のまま。
-    tbl = tbl.sort_values("current_margin", ascending=True)
+    tbl = tbl.sort_values("current_margin", ascending=True, na_position="last")
 elif sort_mode == "接戦順":
     tbl = tbl[tbl["reported_votes"] > 0].sort_values("接戦度", ascending=True)
 elif sort_mode == "残票":
-    tbl = tbl.sort_values("推定残票", ascending=False)
+    tbl = tbl.sort_values("残票", ascending=False, na_position="last")
+else:
+    tbl = tbl.merge(municipalities[["municipality_code", "sort_no"]], on="municipality_code", how="left").sort_values("sort_no")
 
-table_show = tbl[["municipality_name", "リード", "リード票", "開票率", "開票済み票", "推定残票"]].rename(columns={"municipality_name": "市町村"})
+candidate_names = [r["candidate_name"] for _, r in models.candidates.sort_values("candidate_id").iterrows()]
+show_cols = ["municipality_name", "状態", "開票率"] + candidate_names + ["残票", "推計無効票"]
+table_show = tbl[show_cols].rename(columns={"municipality_name": "市町村"})
 
-main_table, guides = st.columns([2.25, 1.0], gap="large")
-with main_table:
-    st.dataframe(
-        table_show, hide_index=True, use_container_width=True, height=560,
-        column_config={
-            "リード票": st.column_config.NumberColumn(format="%d"),
-            "開票率": st.column_config.ProgressColumn(min_value=0, max_value=100, format="%.1f%%"),
-            "開票済み票": st.column_config.NumberColumn(format="%d"),
-            "推定残票": st.column_config.NumberColumn(format="%d"),
-        },
-    )
-with guides:
-    st.markdown("### 注目市町村")
-    for title, metric, copy in guide_cards(msum, swing):
-        st.markdown(
-            f"""
-<div class="guide-card">
-  <div class="guide-title">{title}</div>
-  <div class="guide-metric">{metric}</div>
-  <div class="guide-copy">{copy}</div>
-</div>
-""",
-            unsafe_allow_html=True,
-        )
-
-st.markdown('<div class="section-title">過去選挙からどちらへ動いたか</div>', unsafe_allow_html=True)
-direction = "保守" if state_shift > 0 else "オール沖縄"
-direction_color = RED if state_shift > 0 else BLUE
-st.markdown(
-    f'<div class="section-deck"><strong>{compare_label}</strong> と現在の保革マージンを比較。県全体では <span style="color:{direction_color};font-weight:800;">{direction}方向へ {abs(state_shift):.1f}pt</span>。地図は開票率 {swing_threshold}% 以上の市町村のみ表示します。</div>',
-    unsafe_allow_html=True
+st.dataframe(
+    table_show, hide_index=True, use_container_width=True, height=650,
+    column_config={
+        "開票率": st.column_config.ProgressColumn(min_value=0, max_value=100, format="%.1f%%"),
+        **{name: st.column_config.NumberColumn(format="%d") for name in candidate_names},
+        "残票": st.column_config.NumberColumn(format="%d"),
+    },
 )
 
-s_left, s_right = st.columns([1.1, 1.0], gap="large")
-with s_left:
-    render_boxed_map(shift_map_panel, geojson, layout_boxes, 510, "shift", swing, swing_threshold, global_max_shift)
-    st.markdown(
-        f'<div class="legend-row"><span style="color:{RED};font-weight:800;">→ 保守方向</span><span style="color:{BLUE};font-weight:800;">← 革新・オール沖縄方向</span></div>',
-        unsafe_allow_html=True
-    )
-with s_right:
-    comp = swing[swing["reporting_pct"] >= swing_threshold].copy()
-    comp["今回マージン"] = comp["current_margin"].map(lambda x: f"保守 +{x:.1f}" if x >= 0 else f"オール沖縄 +{abs(x):.1f}")
-    comp["比較選挙マージン"] = comp["previous_margin"].map(lambda x: f"保守 +{x:.1f}" if x >= 0 else f"オール沖縄 +{abs(x):.1f}")
-    comp["シフト"] = comp["shift"].map(lambda x: f"保守へ +{x:.1f}" if x >= 0 else f"オール沖縄へ +{abs(x):.1f}")
-    comp["開票率"] = comp["reporting_pct"]
-    comp = comp.sort_values("shift", key=lambda s: s.abs(), ascending=False)
+with st.expander("市町村の詳細を見る", expanded=False):
+    options = tbl["municipality_name"].tolist()
+    selected = st.selectbox("市町村", options, key="live_muni_detail")
+    r = tbl[tbl["municipality_name"] == selected].iloc[0]
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("投票者数", "―" if pd.isna(r["voters_total"]) else f"{int(r['voters_total']):,}票")
+    c2.metric("投票率", "―" if pd.isna(r["turnout_rate"]) else f"{100*float(r['turnout_rate']):.1f}%")
+    c3.metric("開票率", "―" if pd.isna(r["開票率"]) else f"{float(r['開票率']):.1f}%")
+    c4.metric("残票", "―" if pd.isna(r["残票"]) else f"{int(r['残票']):,}票")
+    d1, d2, d3 = st.columns(3)
+    d1.metric("推計無効票・下限", "―" if pd.isna(r["invalid_low"]) else f"約{int(r['invalid_low']):,}票")
+    d2.metric("推計無効票・中心", "―" if pd.isna(r["invalid_center"]) else f"約{int(r['invalid_center']):,}票")
+    d3.metric("推計無効票・上限", "―" if pd.isna(r["invalid_high"]) else f"約{int(r['invalid_high']):,}票")
+    if pd.notna(r["valid_remaining_low"]) or pd.notna(r["valid_remaining_high"]):
+        st.caption(
+            "推計有効残票："
+            + ("―" if pd.isna(r["valid_remaining_low"]) else f"約{int(r['valid_remaining_low']):,}")
+            + "～"
+            + ("―" if pd.isna(r["valid_remaining_high"]) else f"{int(r['valid_remaining_high']):,}票")
+        )
+    selected_votes = current[current["municipality_name"] == selected].sort_values("candidate_id")
     st.dataframe(
-        comp[["municipality_name", "今回マージン", "比較選挙マージン", "シフト", "開票率"]].rename(columns={"municipality_name": "市町村"}),
-        hide_index=True, use_container_width=True, height=560,
-        column_config={"開票率": st.column_config.NumberColumn(format="%.1f%%")},
+        selected_votes[["candidate_name", "current_votes"]].rename(columns={"candidate_name": "候補者", "current_votes": "得票"}),
+        hide_index=True, use_container_width=True,
+        column_config={"得票": st.column_config.NumberColumn(format="%d")},
     )
 
+st.markdown('<div class="section-title">過去知事選からどちらへ動いたか</div>', unsafe_allow_html=True)
+if current["current_votes"].sum() > 0:
+    direction = "保守" if state_shift > 0 else "オール沖縄"
+    direction_color = RED if state_shift > 0 else BLUE
+    st.markdown(
+        f'<div class="section-deck"><strong>{compare_label}</strong> と現在の保革マージンを比較。県全体では <span style="color:{direction_color};font-weight:800;">{direction}方向へ {abs(state_shift):.1f}pt</span>。地図は開票率 {swing_threshold}% 以上の市町村のみ表示します。</div>',
+        unsafe_allow_html=True,
+    )
+    s_left, s_right = st.columns([1.1, 1.0], gap="large")
+    with s_left:
+        render_boxed_map(shift_map_panel, geojson, layout_boxes, 510, "shift", swing, swing_threshold, global_max_shift)
+        st.markdown(
+            f'<div class="legend-row"><span style="color:{RED};font-weight:800;">→ 保守方向</span><span style="color:{BLUE};font-weight:800;">← 革新・オール沖縄方向</span></div>',
+            unsafe_allow_html=True,
+        )
+    with s_right:
+        comp = swing[swing["reporting_pct"] >= swing_threshold].copy()
+        comp["今回マージン"] = comp["current_margin"].map(lambda x: f"保守 +{x:.1f}" if x >= 0 else f"オール沖縄 +{abs(x):.1f}")
+        comp["比較選挙マージン"] = comp["previous_margin"].map(lambda x: f"保守 +{x:.1f}" if x >= 0 else f"オール沖縄 +{abs(x):.1f}")
+        comp["シフト"] = comp["shift"].map(lambda x: f"保守へ +{x:.1f}" if x >= 0 else f"オール沖縄へ +{abs(x):.1f}")
+        comp["開票率"] = comp["reporting_pct"]
+        comp = comp.sort_values("shift", key=lambda x: x.abs(), ascending=False)
+        st.dataframe(
+            comp[["municipality_name", "今回マージン", "比較選挙マージン", "シフト", "開票率"]].rename(columns={"municipality_name": "市町村"}),
+            hide_index=True, use_container_width=True, height=560,
+            column_config={"開票率": st.column_config.NumberColumn(format="%.1f%%")},
+        )
+else:
+    st.info("候補者得票が入り始めると、2022年など過去知事選との保革シフトを表示します。")
+
 st.markdown('<div class="sub-rule"></div>', unsafe_allow_html=True)
-st.caption("試作版 v0.5｜赤＝保守系、青＝オール沖縄系。現在の数字は2022年確定結果から生成した擬似開票データであり、実際の2022年開票推移ではありません。")
+st.caption(
+    "v0.9.22｜公式値：投票者数・投票率・候補者得票・開票率・無効票確定・残票。"
+    "独自推計：推計無効票・推計有効残票・補正係数。推計値には『推計』『約』を付けています。"
+)
+
+# Save only after the page has rendered, so the next rerun can show per-candidate increases.
+st.session_state["live_previous_candidate_totals"] = current_total_map

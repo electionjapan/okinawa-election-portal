@@ -99,7 +99,7 @@ with nav_back:
 with nav_label:
     st.markdown('<div class="portal-breadcrumb">沖縄選挙ポータル ／ 41市町村 保守寄り？革新より？</div>', unsafe_allow_html=True)
 st.markdown('<div class="portal-nav-spacer"></div>', unsafe_allow_html=True)
-st.caption("v0.9.21 · NEW MAP · 模式配置")
+st.caption("v0.9.22 · NEW MAP · 模式配置")
 
 st.markdown('<div class="page-kicker">OKINAWA ELECTION MATRIX</div>', unsafe_allow_html=True)
 st.markdown('<div class="page-title">41市町村　保守寄り？革新より？</div>', unsafe_allow_html=True)
