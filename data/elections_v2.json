@@ -1,0 +1,68 @@
+[
+  {
+    "election_id": "SEN2010",
+    "date_serial": 40370,
+    "election_type": "参議院選挙区",
+    "election_name": "第22回参議院議員通常選挙（沖縄県選挙区）"
+  },
+  {
+    "election_id": "GOV2010",
+    "date_serial": 40510,
+    "election_type": "知事選",
+    "election_name": "第11回沖縄県知事選挙"
+  },
+  {
+    "election_id": "SEN2013",
+    "date_serial": 41476,
+    "election_type": "参議院選挙区",
+    "election_name": "第23回参議院議員通常選挙（沖縄県選挙区）"
+  },
+  {
+    "election_id": "GOV2014",
+    "date_serial": 41959,
+    "election_type": "知事選",
+    "election_name": "第12回沖縄県知事選挙"
+  },
+  {
+    "election_id": "SEN2016",
+    "date_serial": 42561,
+    "election_type": "参議院選挙区",
+    "election_name": "第24回参議院議員通常選挙（沖縄県選挙区）"
+  },
+  {
+    "election_id": "GOV2018",
+    "date_serial": 43373,
+    "election_type": "知事選",
+    "election_name": "第13回沖縄県知事選挙"
+  },
+  {
+    "election_id": "SEN2019",
+    "date_serial": 43667,
+    "election_type": "参議院選挙区",
+    "election_name": "第25回参議院議員通常選挙（沖縄県選挙区）"
+  },
+  {
+    "election_id": "SEN2022",
+    "date_serial": 44752,
+    "election_type": "参議院選挙区",
+    "election_name": "第26回参議院議員通常選挙（沖縄県選挙区）"
+  },
+  {
+    "election_id": "GOV2022",
+    "date_serial": 44815,
+    "election_type": "知事選",
+    "election_name": "第14回沖縄県知事選挙"
+  },
+  {
+    "election_id": "SEN2025",
+    "date_serial": 45858,
+    "election_type": "参議院選挙区",
+    "election_name": "第27回参議院議員通常選挙（沖縄県選挙区）"
+  },
+  {
+    "election_id": "GOV2026",
+    "date_serial": 46278,
+    "election_type": "知事選",
+    "election_name": "第15回沖縄県知事選挙"
+  }
+]

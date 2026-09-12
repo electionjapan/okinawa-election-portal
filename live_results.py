@@ -19,7 +19,7 @@ GRAY_LIGHT = "#EFEFEF"
 TEXT = "#292929"
 MUTED = "#6B6B6B"
 
-CURRENT_ELECTION = "GOV2022"
+CURRENT_ELECTION = "GOV2026"
 
 ATTR_COLOR = {
     "保守系": RED,
@@ -53,7 +53,7 @@ with nav_back:
         st.rerun()
 with nav_label:
     st.markdown('<div class="portal-breadcrumb">沖縄選挙ポータル / 開票速報</div>', unsafe_allow_html=True)
-st.caption("v0.9.21 · NEW MAP · 模式配置")
+st.caption("v0.9.23 · NEW MAP · 模式配置")
 
 st.markdown(
     """
@@ -152,9 +152,9 @@ def load_json(name):
 
 @st.cache_data
 def load_all():
-    results = pd.DataFrame(load_json("statewide_results.json"))
-    elections = pd.DataFrame(load_json("elections.json"))
-    turnout = pd.DataFrame(load_json("turnout.json"))
+    results = pd.DataFrame(load_json("statewide_results_v4.json"))
+    elections = pd.DataFrame(load_json("elections_v2.json"))
+    turnout = pd.DataFrame(load_json("turnout_v2.json"))
     municipalities = pd.DataFrame(load_json("municipalities.json"))
     geojson = load_json("map_layout_v0912.geojson")
     layout_boxes = load_json("map_layout_v0912.json")
@@ -705,9 +705,9 @@ state_shift = statewide_margin_current(current) - statewide_margin_final(results
 global_max_shift = max(float(swing["shift"].abs().max()) if not swing.empty else 1.0, 1.0)
 
 # -------------------- page --------------------
-st.markdown('<span class="live-badge">開票速報</span><span class="demo-badge">2022実績を使ったデモ</span>', unsafe_allow_html=True)
+st.markdown('<span class="live-badge">開票速報</span><span class="demo-badge">6候補デモ（架空の数字）</span>', unsafe_allow_html=True)
 st.markdown('<div class="nyt-title" style="font-size:2.25rem;margin-top:8px;">沖縄県知事選 開票速報</div>', unsafe_allow_html=True)
-st.markdown('<div class="kicker">2022年9月11日投開票の確定結果を擬似開票に変換した試作版です。本番ではリアルタイム入力値に置き換わります。</div>', unsafe_allow_html=True)
+st.markdown('<div class="kicker">2026年9月13日投開票の沖縄県知事選挙、候補者6人を反映した試作版です。表示中の得票数は本番用の見た目を確認するための架空の数字で、実際の開票結果ではありません。本番ではリアルタイム入力値に置き換わります。</div>', unsafe_allow_html=True)
 st.markdown('<div class="top-rule"></div>', unsafe_allow_html=True)
 
 leader = totals.iloc[0] if not totals.empty and totals["current_votes"].sum() else None
@@ -835,4 +835,4 @@ with s_right:
     )
 
 st.markdown('<div class="sub-rule"></div>', unsafe_allow_html=True)
-st.caption("試作版 v0.5｜赤＝保守系、青＝オール沖縄系。現在の数字は2022年確定結果から生成した擬似開票データであり、実際の2022年開票推移ではありません。")
+st.caption("試作版 v0.6｜赤＝保守系（古謝）、青＝オール沖縄系（玉城）、灰＝その他4候補（無所属3名・琉球独立党）。表示中の得票数・開票の進み方は架空のデモ用データで、実際の開票結果ではありません。")
