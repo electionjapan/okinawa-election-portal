@@ -101,6 +101,15 @@ def _series_num(df: pd.DataFrame, col: str) -> pd.Series:
     return df[col].map(_num).astype("Float64")
 
 
+def _series_text(df: pd.DataFrame, col: str) -> pd.Series:
+    """列が存在しない場合でも安全に空文字列のSeriesを返す
+    （df.get(col, "") は列が無いと文字列そのものを返してしまい、
+    後段の .map() 呼び出しでクラッシュするため、これを避ける）。"""
+    if col not in df.columns:
+        return pd.Series([""] * len(df), index=df.index, dtype=object)
+    return df[col].map(_clean_text)
+
+
 def _series_rate(df: pd.DataFrame, col: str) -> pd.Series:
     if col not in df.columns:
         return pd.Series([pd.NA] * len(df), index=df.index, dtype="Float64")
@@ -167,7 +176,7 @@ class LiveModels:
     turnout_label: str
 
 
-def build_live_models(book: dict[str, pd.DataFrame], municipalities: pd.DataFrame) -> LiveModels:
+def build_live_models(book: dict[str, pd.DataFrame], municipalities: pd.DataFrame, invalid_history: pd.DataFrame | None = None) -> LiveModels:
     cand = book["00_候補者"].copy()
     opening = book["03_開票速報"].copy()
     voting = book["02_投票速報"].copy()
@@ -178,11 +187,11 @@ def build_live_models(book: dict[str, pd.DataFrame], municipalities: pd.DataFram
     cand = cand[cand.get("候補者名", pd.Series(dtype=object)).notna()].copy()
     cand["candidate_id"] = pd.to_numeric(cand.get("届出番号"), errors="coerce")
     cand["candidate_name"] = cand["候補者名"].map(_normalize_candidate_name)
-    cand["party"] = cand.get("党派", "").map(_clean_text)
-    cand["incumbency"] = cand.get("現新", "").map(_clean_text)
+    cand["party"] = _series_text(cand, "党派")
+    cand["incumbency"] = _series_text(cand, "現新")
     cand["age"] = pd.to_numeric(cand.get("年齢"), errors="coerce")
-    cand["title"] = cand.get("肩書", "").map(_clean_text)
-    cand["endorsement"] = cand.get("推薦・支援", "").map(_clean_text)
+    cand["title"] = _series_text(cand, "肩書")
+    cand["endorsement"] = _series_text(cand, "推薦・支援")
     cand["attribute"] = cand["candidate_name"].map(CURRENT_ATTR_BY_NAME).fillna("独立・無所属")
     cand["result"] = ""
     cand = cand.sort_values("candidate_id", na_position="last").reset_index(drop=True)
@@ -200,8 +209,8 @@ def build_live_models(book: dict[str, pd.DataFrame], municipalities: pd.DataFram
     voting2["turnout_rate"] = _series_rate(voting2, "投票率")
     voting2["voting_voters"] = _series_num(voting2, "投票者_計")
     voting2["electorate"] = _series_num(voting2, "当日有権者_計")
-    voting2["voting_state"] = voting2.get("データ状態", "").map(_clean_text)
-    voting2["voting_round"] = voting2.get("最新速報回", "").map(_clean_text)
+    voting2["voting_state"] = _series_text(voting2, "データ状態")
+    voting2["voting_round"] = _series_text(voting2, "最新速報回")
 
     master2 = master.copy()
     master2["municipality_name"] = master2["市町村名"].astype(str).str.strip()
@@ -217,7 +226,25 @@ def build_live_models(book: dict[str, pd.DataFrame], municipalities: pd.DataFram
 
     opening["voters_total"] = _series_num(opening, "投票者数")
     opening["counted_ballots"] = _series_num(opening, "開票済票数")
-    opening["candidate_votes_total"] = _series_num(opening, "候補者得票計")
+
+    # 実際のシートには「候補者得票計」という合計列は存在せず、候補者ごとの
+    # 【入力】列が6つ並んでいるだけ。ここで実データから直接合計する
+    # （固定の「候補者得票計」列を探すだけだと常にNAになり、開票済票数・
+    # 残票・開票率が候補者の得票をまったく反映しない重大な不具合になる）。
+    cand_input_cols = []
+    for _, crow in cand.iterrows():
+        col = next(
+            (c for c in opening.columns if _normalize_candidate_name(c) == crow["candidate_name"] and "【入力】" in str(c)),
+            None,
+        )
+        if col:
+            cand_input_cols.append(col)
+    if cand_input_cols:
+        cand_votes_df = opening[cand_input_cols].apply(lambda s: s.map(_num))
+        opening["candidate_votes_total"] = cand_votes_df.sum(axis=1, min_count=1).astype("Float64")
+    else:
+        opening["candidate_votes_total"] = _series_num(opening, "候補者得票計")
+
     opening["invalid_final"] = _series_num(opening, "無効票_確定【入力】")
     opening["rejected"] = _series_num(opening, "不受理等【入力】")
     opening["remaining_votes"] = _series_num(opening, "残票")
@@ -227,8 +254,8 @@ def build_live_models(book: dict[str, pd.DataFrame], municipalities: pd.DataFram
     opening["invalid_high"] = _series_num(opening, "推計無効票_上限")
     opening["valid_remaining_low"] = _series_num(opening, "推計有効残票_少")
     opening["valid_remaining_high"] = _series_num(opening, "推計有効残票_多")
-    opening["invalid_display"] = opening.get("推計無効票表示", "").map(_clean_text)
-    opening["update_time"] = opening.get("更新時刻【入力】", "").map(_clean_text)
+    opening["invalid_display"] = _series_text(opening, "推計無効票表示")
+    opening["update_time"] = _series_text(opening, "更新時刻【入力】")
 
     # Prefer the final opening-sheet voter count; fallback to the final voting tab if present.
     opening["voters_total"] = opening["voters_total"].fillna(opening["voting_voters"])
@@ -241,6 +268,55 @@ def build_live_models(book: dict[str, pd.DataFrame], municipalities: pd.DataFram
     opening["remaining_votes"] = opening["remaining_votes"].fillna(calc_remaining)
     calc_reporting = (opening["counted_ballots"] / opening["voters_total"].replace(0, pd.NA)).clip(lower=0, upper=1)
     opening["reporting_rate"] = opening["reporting_rate"].fillna(calc_reporting)
+
+    # 過去知事選（2018・2022）の無効率をもとにした無効票推計のフォールバック。
+    # 03_開票速報や06_無効票補正にあらかじめ計算済みの値が入っていればそれを
+    # 最優先で使うが、実際のシートにその列が無い場合は空になるため、その場合
+    # のみここでPython側から計算する（アプリ側で計算する方針として合意済み）。
+    history = invalid_history if invalid_history is not None else pd.DataFrame(
+        columns=["municipality_name", "rate_weighted", "rate_min", "rate_max"]
+    )
+    opening = opening.merge(
+        history[["municipality_name", "rate_weighted", "rate_min", "rate_max"]],
+        on="municipality_name", how="left",
+    )
+    is_confirmed = opening["invalid_final"].notna()
+    conf_mask = is_confirmed & opening["voters_total"].notna() & opening["rate_weighted"].notna()
+    base_pred = float((opening.loc[conf_mask, "voters_total"] * opening.loc[conf_mask, "rate_weighted"]).sum())
+    actual_conf = float(opening.loc[conf_mask, "invalid_final"].sum())
+    raw_factor = (actual_conf / base_pred) if base_pred > 0 else 1.0
+    total_voters_all = float(opening["voters_total"].fillna(0).sum())
+    confirmed_voters = float(opening.loc[conf_mask, "voters_total"].sum())
+    confirmed_share = (confirmed_voters / total_voters_all) if total_voters_all > 0 else 0.0
+    applied_factor = 1.0 + (raw_factor - 1.0) * confirmed_share
+
+    def _calc_invalid(row, rate_col):
+        if pd.notna(row["invalid_final"]):
+            return row["invalid_final"]
+        if pd.isna(row["voters_total"]) or pd.isna(row[rate_col]):
+            return pd.NA
+        return round(float(row["voters_total"]) * float(row[rate_col]) * applied_factor)
+
+    calc_invalid_lo = opening.apply(lambda r: _calc_invalid(r, "rate_min"), axis=1)
+    calc_invalid_mid = opening.apply(lambda r: _calc_invalid(r, "rate_weighted"), axis=1)
+    calc_invalid_hi = opening.apply(lambda r: _calc_invalid(r, "rate_max"), axis=1)
+    opening["invalid_low"] = opening["invalid_low"].fillna(calc_invalid_lo).astype("Float64")
+    opening["invalid_center"] = opening["invalid_center"].fillna(calc_invalid_mid).astype("Float64")
+    opening["invalid_high"] = opening["invalid_high"].fillna(calc_invalid_hi).astype("Float64")
+
+    def _calc_valid_remaining(row, invalid_col):
+        if pd.isna(row["remaining_votes"]):
+            return pd.NA
+        if pd.notna(row["invalid_final"]):
+            return row["remaining_votes"]
+        if pd.isna(row[invalid_col]):
+            return pd.NA
+        return max(float(row["remaining_votes"]) - float(row[invalid_col]), 0)
+
+    calc_valid_lo = opening.apply(lambda r: _calc_valid_remaining(r, "invalid_high"), axis=1)
+    calc_valid_hi = opening.apply(lambda r: _calc_valid_remaining(r, "invalid_low"), axis=1)
+    opening["valid_remaining_low"] = opening["valid_remaining_low"].fillna(calc_valid_lo).astype("Float64")
+    opening["valid_remaining_high"] = opening["valid_remaining_high"].fillna(calc_valid_hi).astype("Float64")
     opening["reporting_available"] = opening["reporting_rate"].notna()
     opening["reporting_pct"] = 100 * opening["reporting_rate"].fillna(0)
     opening["reported_votes"] = opening["counted_ballots"].fillna(0)
@@ -319,7 +395,7 @@ def build_live_models(book: dict[str, pd.DataFrame], municipalities: pd.DataFram
     totals["has_published"] = totals["published_cells"] > 0
     totals = totals.merge(
         cand[["candidate_id", "incumbency", "age", "title", "endorsement"]], on="candidate_id", how="left"
-    ).sort_values("candidate_id")
+    ).sort_values(["current_votes", "candidate_id"], ascending=[False, True])
     denom = float(totals["current_votes"].sum())
     totals["pct"] = 100 * totals["current_votes"] / denom if denom > 0 else 0.0
 
@@ -345,6 +421,8 @@ def build_live_models(book: dict[str, pd.DataFrame], municipalities: pd.DataFram
         invalid_center = cnum("中心")
         invalid_high = cnum("上限")
         correction_factor = cnum("適用補正係数")
+    if correction_factor is None:
+        correction_factor = applied_factor
     if invalid_low is None:
         invalid_low = _safe_sum(msum["invalid_low"])
         invalid_low = None if pd.isna(invalid_low) else invalid_low

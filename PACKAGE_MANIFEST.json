@@ -1,15 +1,19 @@
 [
   {
     "path": "README.md",
-    "size_bytes": 14061
+    "size_bytes": 16415
   },
   {
     "path": "app.py",
-    "size_bytes": 5775
+    "size_bytes": 5750
   },
   {
     "path": "data/elections.json",
     "size_bytes": 1756
+  },
+  {
+    "path": "data/invalid_history_v1.json",
+    "size_bytes": 7288
   },
   {
     "path": "data/map_layout_v0912.geojson",
@@ -73,11 +77,11 @@
   },
   {
     "path": "live_data.py",
-    "size_bytes": 17088
+    "size_bytes": 21637
   },
   {
     "path": "live_results.py",
-    "size_bytes": 48461
+    "size_bytes": 46420
   },
   {
     "path": "matrix_results.py",
@@ -85,7 +89,7 @@
   },
   {
     "path": "requirements.txt",
-    "size_bytes": 71
+    "size_bytes": 70
   },
   {
     "path": "shizuoka_results.py",

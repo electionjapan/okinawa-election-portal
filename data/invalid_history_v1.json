@@ -1,0 +1,289 @@
+[
+  {
+    "municipality_name": "那覇市",
+    "rate_weighted": 0.008648008985639024,
+    "rate_min": 0.0075470762824762835,
+    "rate_max": 0.00993778900527741,
+    "n": 2
+  },
+  {
+    "municipality_name": "宜野湾市",
+    "rate_weighted": 0.00704940618054927,
+    "rate_min": 0.005581639027142483,
+    "rate_max": 0.008511663387802626,
+    "n": 2
+  },
+  {
+    "municipality_name": "石垣市",
+    "rate_weighted": 0.011274571440546544,
+    "rate_min": 0.008833845754124627,
+    "rate_max": 0.013563451776649747,
+    "n": 2
+  },
+  {
+    "municipality_name": "浦添市",
+    "rate_weighted": 0.00783996428770716,
+    "rate_min": 0.006591436405821557,
+    "rate_max": 0.009242801279772485,
+    "n": 2
+  },
+  {
+    "municipality_name": "名護市",
+    "rate_weighted": 0.007415254237288136,
+    "rate_min": 0.004196065023466882,
+    "rate_max": 0.010557291508661226,
+    "n": 2
+  },
+  {
+    "municipality_name": "糸満市",
+    "rate_weighted": 0.007336186294670149,
+    "rate_min": 0.006909242413721269,
+    "rate_max": 0.007824601819120626,
+    "n": 2
+  },
+  {
+    "municipality_name": "沖縄市",
+    "rate_weighted": 0.009066048158973194,
+    "rate_min": 0.005713218238709778,
+    "rate_max": 0.012464106528667446,
+    "n": 2
+  },
+  {
+    "municipality_name": "豊見城市",
+    "rate_weighted": 0.007696395207322717,
+    "rate_min": 0.007625694713713326,
+    "rate_max": 0.007776276879266912,
+    "n": 2
+  },
+  {
+    "municipality_name": "うるま市",
+    "rate_weighted": 0.009329466438380098,
+    "rate_min": 0.008289054197662061,
+    "rate_max": 0.010187975319271058,
+    "n": 2
+  },
+  {
+    "municipality_name": "宮古島市",
+    "rate_weighted": 0.007375347789603851,
+    "rate_min": 0.006264236902050114,
+    "rate_max": 0.008694812095449716,
+    "n": 2
+  },
+  {
+    "municipality_name": "南城市",
+    "rate_weighted": 0.008541406795069663,
+    "rate_min": 0.006268905352680724,
+    "rate_max": 0.01065828160731787,
+    "n": 2
+  },
+  {
+    "municipality_name": "国頭村",
+    "rate_weighted": 0.009254118082546734,
+    "rate_min": 0.004090740052063964,
+    "rate_max": 0.014369933677229182,
+    "n": 2
+  },
+  {
+    "municipality_name": "大宜味村",
+    "rate_weighted": 0.005917159763313609,
+    "rate_min": 0.0028506271379703536,
+    "rate_max": 0.008655804480651732,
+    "n": 2
+  },
+  {
+    "municipality_name": "東村",
+    "rate_weighted": 0.012340425531914894,
+    "rate_min": 0.006222222222222222,
+    "rate_max": 0.017959183673469388,
+    "n": 2
+  },
+  {
+    "municipality_name": "今帰仁村",
+    "rate_weighted": 0.006698467471835989,
+    "rate_min": 0.0065865943432778,
+    "rate_max": 0.00682157322532509,
+    "n": 2
+  },
+  {
+    "municipality_name": "本部町",
+    "rate_weighted": 0.00833041652082604,
+    "rate_min": 0.006017023774581743,
+    "rate_max": 0.010440369428456699,
+    "n": 2
+  },
+  {
+    "municipality_name": "恩納村",
+    "rate_weighted": 0.009275415556984112,
+    "rate_min": 0.005452775073028238,
+    "rate_max": 0.012686826555439694,
+    "n": 2
+  },
+  {
+    "municipality_name": "宜野座村",
+    "rate_weighted": 0.009040536599591718,
+    "rate_min": 0.007570977917981073,
+    "rate_max": 0.010303687635574838,
+    "n": 2
+  },
+  {
+    "municipality_name": "金武町",
+    "rate_weighted": 0.0060910760901092525,
+    "rate_min": 0.005492493592090809,
+    "rate_max": 0.006760909649661954,
+    "n": 2
+  },
+  {
+    "municipality_name": "伊江村",
+    "rate_weighted": 0.008687615526802217,
+    "rate_min": 0.002675840978593272,
+    "rate_max": 0.014316392269148175,
+    "n": 2
+  },
+  {
+    "municipality_name": "読谷村",
+    "rate_weighted": 0.009440886886532182,
+    "rate_min": 0.005949051710987949,
+    "rate_max": 0.012901925209152303,
+    "n": 2
+  },
+  {
+    "municipality_name": "嘉手納町",
+    "rate_weighted": 0.0074270971777030724,
+    "rate_min": 0.006681190994916485,
+    "rate_max": 0.00829664747714189,
+    "n": 2
+  },
+  {
+    "municipality_name": "北谷町",
+    "rate_weighted": 0.009019889044042722,
+    "rate_min": 0.006232423804818727,
+    "rate_max": 0.011769115442278861,
+    "n": 2
+  },
+  {
+    "municipality_name": "北中城村",
+    "rate_weighted": 0.007132088600255132,
+    "rate_min": 0.004641448131817127,
+    "rate_max": 0.00961984237366713,
+    "n": 2
+  },
+  {
+    "municipality_name": "中城村",
+    "rate_weighted": 0.009099727470090998,
+    "rate_min": 0.0073703108759331,
+    "rate_max": 0.010753659859027652,
+    "n": 2
+  },
+  {
+    "municipality_name": "西原町",
+    "rate_weighted": 0.008794591326334304,
+    "rate_min": 0.005807957444498724,
+    "rate_max": 0.011857707509881422,
+    "n": 2
+  },
+  {
+    "municipality_name": "与那原町",
+    "rate_weighted": 0.00698467702636851,
+    "rate_min": 0.006187240085201339,
+    "rate_max": 0.007897793263646922,
+    "n": 2
+  },
+  {
+    "municipality_name": "南風原町",
+    "rate_weighted": 0.00854320081763149,
+    "rate_min": 0.005837078361485614,
+    "rate_max": 0.011329787234042554,
+    "n": 2
+  },
+  {
+    "municipality_name": "渡嘉敷村",
+    "rate_weighted": 0.023728813559322035,
+    "rate_min": 0.022004889975550123,
+    "rate_max": 0.025210084033613446,
+    "n": 2
+  },
+  {
+    "municipality_name": "座間味村",
+    "rate_weighted": 0.015310233682514102,
+    "rate_min": 0.0050933786078098476,
+    "rate_max": 0.024539877300613498,
+    "n": 2
+  },
+  {
+    "municipality_name": "粟国村",
+    "rate_weighted": 0.020253164556962026,
+    "rate_min": 0.005494505494505495,
+    "rate_max": 0.03286384976525822,
+    "n": 2
+  },
+  {
+    "municipality_name": "渡名喜村",
+    "rate_weighted": 0.01702127659574468,
+    "rate_min": 0.01276595744680851,
+    "rate_max": 0.02127659574468085,
+    "n": 2
+  },
+  {
+    "municipality_name": "南大東村",
+    "rate_weighted": 0.002175489485134155,
+    "rate_min": 0.0,
+    "rate_max": 0.003978779840848806,
+    "n": 2
+  },
+  {
+    "municipality_name": "北大東村",
+    "rate_weighted": 0.00903225806451613,
+    "rate_min": 0.002564102564102564,
+    "rate_max": 0.015584415584415584,
+    "n": 2
+  },
+  {
+    "municipality_name": "伊平屋村",
+    "rate_weighted": 0.01126573889993373,
+    "rate_min": 0.008363201911589008,
+    "rate_max": 0.01488095238095238,
+    "n": 2
+  },
+  {
+    "municipality_name": "伊是名村",
+    "rate_weighted": 0.018139262726740785,
+    "rate_min": 0.015739769150052464,
+    "rate_max": 0.021164021164021163,
+    "n": 2
+  },
+  {
+    "municipality_name": "久米島町",
+    "rate_weighted": 0.006251736593498194,
+    "rate_min": 0.0056903264450434265,
+    "rate_max": 0.006737496760818865,
+    "n": 2
+  },
+  {
+    "municipality_name": "八重瀬町",
+    "rate_weighted": 0.010226724553786782,
+    "rate_min": 0.007076543530481075,
+    "rate_max": 0.013318888605658934,
+    "n": 2
+  },
+  {
+    "municipality_name": "多良間村",
+    "rate_weighted": 0.008547008547008548,
+    "rate_min": 0.00487012987012987,
+    "rate_max": 0.01263537906137184,
+    "n": 2
+  },
+  {
+    "municipality_name": "竹富町",
+    "rate_weighted": 0.018563005022930772,
+    "rate_min": 0.010218300046446818,
+    "rate_max": 0.025968672712283595,
+    "n": 2
+  },
+  {
+    "municipality_name": "与那国町",
+    "rate_weighted": 0.009787928221859706,
+    "rate_min": 0.005847953216374269,
+    "rate_max": 0.014760147601476014,
+    "n": 2
+  }
+]
