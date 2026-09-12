@@ -58,7 +58,7 @@ with nav_back:
         st.rerun()
 with nav_label:
     st.markdown('<div class="portal-breadcrumb">沖縄選挙ポータル / 開票速報</div>', unsafe_allow_html=True)
-st.caption("v0.9.25 · LIVE SHEET · NEW MAP")
+st.caption("v0.9.26 · LIVE SHEET · NEW MAP")
 
 st.markdown(
     """
@@ -357,7 +357,8 @@ def label_lookup(geojson):
     return pd.DataFrame(rows)
 
 def winner_map_panel(geojson, msum, current, compare_detail, compare_label, height=520):
-    by_code = {str(r["municipality_code"]): r for _, r in msum.iterrows()}
+    m2 = msum.merge(compare_detail, on="municipality_code", how="left")
+    by_code = {str(r["municipality_code"]): r for _, r in m2.iterrows()}
     current_groups = {str(code): grp.sort_values("current_votes", ascending=False) for code, grp in current.groupby("municipality_code")}
     fig = go.Figure()
     for feature in geojson["features"]:
@@ -369,15 +370,37 @@ def winner_map_panel(geojson, msum, current, compare_detail, compare_label, heig
         total = int(grp["current_votes"].sum()) if grp is not None else 0
         xs, ys = _geometry_xy(feature["geometry"])
         fill = lead_fill_color(r["leader_attribute"], r["lead_points"], total)
+
+        prev_winner = r.get("prev_winner_name")
+        prev_pt = r.get("prev_point_diff")
+        if pd.isna(prev_winner) or not prev_winner:
+            prev_line = ""
+        elif prev_winner == "同数":
+            prev_line = "（前回 同数）"
+        elif pd.notna(prev_pt):
+            prev_line = f"（前回 {prev_winner} +{prev_pt:.1f}pt差で勝利）"
+        else:
+            prev_line = f"（前回 {prev_winner} が勝利）"
+
         lines = []
         if grp is not None and total > 0:
-            for _, c in grp.iterrows():
+            grp_rows = list(grp.iterrows())
+            for i, (_, c) in enumerate(grp_rows):
                 pct = 100 * c["current_votes"] / total
                 lines.append(f"{c['candidate_name']}　{int(c['current_votes']):,}票　{pct:.1f}%")
+                if i == 0 and len(grp_rows) > 1:
+                    top_votes = float(c["current_votes"])
+                    second_votes = float(grp_rows[1][1]["current_votes"])
+                    if top_votes != second_votes:
+                        margin_votes = int(top_votes - second_votes)
+                        margin_pt = 100 * margin_votes / total
+                        lines.append(
+                            f"<span style='color:#8a8a8a;font-size:12px;'>（{margin_pt:.1f}ポイント　{margin_votes:,}票リード）</span>"
+                        )
         else:
             lines.append("未開票")
         hover = (
-            f"<b>{r['municipality_name']}</b><br>"
+            f"<b>{r['municipality_name']}</b>{prev_line}<br>"
             + "<br>".join(lines)
             + f"<br><br><b>開票率 {r['reporting_pct']:.1f}%</b>"
         )
@@ -452,7 +475,7 @@ def remaining_bubble_panel(geojson, msum, compare_detail, compare_label, height=
             sub = d[~d["leader_attribute"].isin(["保守系", *BLUE_BLOC_ATTRS, "同数"])]
         else:
             sub = d[d["leader_attribute"] == attr]
-        sub = sub[pd.to_numeric(sub["remaining_votes"], errors="coerce").notna()]
+        sub = sub[pd.to_numeric(sub["remaining_votes"], errors="coerce") > 0]
         if sub.empty:
             continue
         sizes = 8 + 42 * (sub["remaining_votes"].astype(float) / max(max_value, 1)).pow(0.5)
@@ -632,11 +655,11 @@ with st.sidebar:
         st.rerun()
 
     current_meta = elections[elections["election_id"] == "GOV2022"].iloc[0]
-    prior = elections[elections["election_type"] == "知事選"].copy().sort_values("date_serial", ascending=False)
+    prior = elections.copy().sort_values("date_serial", ascending=False)
     prior["label"] = prior.apply(election_label, axis=1)
     compare_options = prior[["label", "election_id"]]
     default_idx = compare_options["election_id"].tolist().index("GOV2022") if "GOV2022" in compare_options["election_id"].tolist() else 0
-    compare_label = st.selectbox("比較する過去知事選", compare_options["label"].tolist(), index=default_idx)
+    compare_label = st.selectbox("比較する過去の選挙", compare_options["label"].tolist(), index=default_idx)
     compare_id = compare_options.loc[compare_options["label"] == compare_label, "election_id"].iloc[0]
 
     swing_threshold = st.select_slider("シフト表示の最低開票率", options=[25, 50, 75, 90, 95, 100], value=50)
@@ -690,7 +713,7 @@ current_total_map = {r["candidate_name"]: int(r["current_votes"]) for _, r in to
 st.markdown('<span class="live-badge">開票速報</span><span class="live-source-badge">LIVE</span>', unsafe_allow_html=True)
 st.markdown('<div class="nyt-title" style="font-size:2.25rem;margin-top:8px;">2026 沖縄県知事選 開票速報</div>', unsafe_allow_html=True)
 st.markdown(
-    f'<div class="kicker">2026年9月13日投開票。最終更新 <strong>{models.latest_update}</strong>。</div>',
+    '<div class="kicker">2026年9月13日投開票。</div>',
     unsafe_allow_html=True,
 )
 st.markdown('<div class="top-rule"></div>', unsafe_allow_html=True)
@@ -779,8 +802,11 @@ tbl["開票済み票"] = pd.to_numeric(tbl["reported_votes"], errors="coerce")
 tbl["残票"] = pd.to_numeric(tbl["remaining_votes"], errors="coerce")
 tbl["推計無効票"] = tbl.apply(
     lambda r: (
-        f"約{int(r['invalid_low']):,}～{int(r['invalid_high']):,}票"
-        if pd.notna(r["invalid_low"]) and pd.notna(r["invalid_high"]) else "―"
+        "―" if r["status"] == "確定"
+        else (
+            f"約{int(r['invalid_low']):,}～{int(r['invalid_high']):,}票"
+            if pd.notna(r["invalid_low"]) and pd.notna(r["invalid_high"]) else "―"
+        )
     ), axis=1
 )
 tbl["状態"] = tbl["status"]
@@ -826,11 +852,12 @@ with st.expander("市町村の詳細を見る", expanded=False):
     c2.metric("投票率", "―" if pd.isna(r["turnout_rate"]) else f"{100*float(r['turnout_rate']):.1f}%")
     c3.metric("開票率", "―" if pd.isna(r["開票率"]) else f"{float(r['開票率']):.1f}%")
     c4.metric("残票", "―" if pd.isna(r["残票"]) else f"{int(r['残票']):,}票")
+    is_final = r["status"] == "確定"
     d1, d2, d3 = st.columns(3)
-    d1.metric("推計無効票・下限", "―" if pd.isna(r["invalid_low"]) else f"約{int(r['invalid_low']):,}票")
-    d2.metric("推計無効票・中心", "―" if pd.isna(r["invalid_center"]) else f"約{int(r['invalid_center']):,}票")
-    d3.metric("推計無効票・上限", "―" if pd.isna(r["invalid_high"]) else f"約{int(r['invalid_high']):,}票")
-    if pd.notna(r["valid_remaining_low"]) or pd.notna(r["valid_remaining_high"]):
+    d1.metric("推計無効票・下限", "―" if is_final or pd.isna(r["invalid_low"]) else f"約{int(r['invalid_low']):,}票")
+    d2.metric("推計無効票・中心", "―" if is_final or pd.isna(r["invalid_center"]) else f"約{int(r['invalid_center']):,}票")
+    d3.metric("推計無効票・上限", "―" if is_final or pd.isna(r["invalid_high"]) else f"約{int(r['invalid_high']):,}票")
+    if not is_final and (pd.notna(r["valid_remaining_low"]) or pd.notna(r["valid_remaining_high"])):
         st.caption(
             "推計有効残票："
             + ("―" if pd.isna(r["valid_remaining_low"]) else f"約{int(r['valid_remaining_low']):,}")
@@ -844,7 +871,7 @@ with st.expander("市町村の詳細を見る", expanded=False):
         column_config={"得票": st.column_config.NumberColumn(format="%d")},
     )
 
-st.markdown('<div class="section-title">過去知事選からどちらへ動いたか</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-title">過去の選挙からどちらへ動いたか</div>', unsafe_allow_html=True)
 if current["current_votes"].sum() > 0:
     past_margin = statewide_margin_final(results, compare_id)
     current_margin = statewide_margin_current(current)
@@ -888,11 +915,11 @@ if current["current_votes"].sum() > 0:
             column_config={"開票率": st.column_config.NumberColumn(format="%.1f%%")},
         )
 else:
-    st.info("候補者得票が入り始めると、2022年など過去知事選との保革シフトを表示します。")
+    st.info("候補者得票が入り始めると、過去の知事選・参院選との保革シフトを表示します。")
 
 st.markdown('<div class="sub-rule"></div>', unsafe_allow_html=True)
 st.caption(
-    "v0.9.25｜公式値：投票者数・投票率・候補者得票・開票率・無効票確定・残票。"
+    "v0.9.26｜公式値：投票者数・投票率・候補者得票・開票率・無効票確定・残票。"
     "独自推計：推計無効票・推計有効残票・補正係数。推計値には『推計』『約』を付けています。"
 )
 
