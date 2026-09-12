@@ -38,7 +38,7 @@ def _csv_url(sheet_name: str, sheet_id: str = GOOGLE_SHEET_ID) -> str:
 def fetch_sheet_csv(sheet_name: str, sheet_id: str = GOOGLE_SHEET_ID, timeout: int = 12) -> pd.DataFrame:
     """Read one public Google Sheet tab through the GViz CSV endpoint."""
     url = _csv_url(sheet_name, sheet_id)
-    req = Request(url, headers={"User-Agent": "Mozilla/5.0 OkinawaElectionPortal/0.9.22"})
+    req = Request(url, headers={"User-Agent": "Mozilla/5.0 OkinawaElectionPortal/0.9.23"})
     try:
         with urlopen(req, timeout=timeout) as response:
             body = response.read().decode("utf-8-sig")

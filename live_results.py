@@ -60,7 +60,7 @@ with nav_back:
         st.rerun()
 with nav_label:
     st.markdown('<div class="portal-breadcrumb">沖縄選挙ポータル / 開票速報</div>', unsafe_allow_html=True)
-st.caption("v0.9.22 · LIVE SHEET · NEW MAP")
+st.caption("v0.9.23 · LIVE SHEET · NEW MAP")
 
 st.markdown(
     """
@@ -641,6 +641,7 @@ def render_boxed_map(panel_fn, geojson, layout_boxes, height, key_prefix, *args,
     )
 
 def render_candidate_totals(totals, previous_totals=None):
+    """候補者カードをMarkdownに誤解釈されない連続HTMLとして生成する。"""
     html = []
     prev = previous_totals or {}
     for _, r in totals.iterrows():
@@ -652,21 +653,23 @@ def render_candidate_totals(totals, previous_totals=None):
         delta_html = f'<span style="color:#777;font-size:.78rem;">前回更新から +{delta:,}</span>' if delta > 0 else ''
         vote_text = f"{int(r['current_votes']):,}" if published else "―"
         pct_text = f"{float(r['pct']):.2f}%" if published else "―"
-        html.append(f"""
-        <div class="result-card" style="border-left:7px solid {color}; padding-left:12px;">
-          <div style="display:grid;grid-template-columns:1.6fr .8fr .65fr;gap:10px;align-items:end;">
-            <div>
-              <span class="candidate-name">{r['candidate_name']}</span>{attribute_badge(r['attribute'])}<br>
-              <span class="candidate-party">{meta}</span>
-              {f'<br><span class="candidate-party">{endorsement}</span>' if endorsement else ''}
-            </div>
-            <div class="big-num">{vote_text}<br>{delta_html}</div>
-            <div class="pct-num">{pct_text}</div>
-          </div>
-          <div class="progress-outer"><div class="progress-inner" style="width:{min(float(r['pct']),100):.2f}%;background:{color};"></div></div>
-        </div>
-        """)
-    return "\n".join(html)
+        endorsement_html = f'<br><span class="candidate-party">{endorsement}</span>' if endorsement else ''
+
+        # Streamlit の st.markdown は、空行の後にインデントされた HTML が来ると
+        # Markdown のコードブロックとして扱うことがある。推薦・支援が空欄でも
+        # HTML ブロックを分断しないよう、カード全体を改行なしで連結する。
+        html.append(
+            f'<div class="result-card" style="border-left:7px solid {color}; padding-left:12px;">'
+            f'<div style="display:grid;grid-template-columns:1.6fr .8fr .65fr;gap:10px;align-items:end;">'
+            f'<div><span class="candidate-name">{r["candidate_name"]}</span>{attribute_badge(r["attribute"])}<br>'
+            f'<span class="candidate-party">{meta}</span>{endorsement_html}</div>'
+            f'<div class="big-num">{vote_text}<br>{delta_html}</div>'
+            f'<div class="pct-num">{pct_text}</div>'
+            f'</div>'
+            f'<div class="progress-outer"><div class="progress-inner" style="width:{min(float(r["pct"]),100):.2f}%;background:{color};"></div></div>'
+            f'</div>'
+        )
+    return "".join(html)
 
 def guide_cards(msum, swing):
     cards = []
@@ -942,7 +945,7 @@ else:
 
 st.markdown('<div class="sub-rule"></div>', unsafe_allow_html=True)
 st.caption(
-    "v0.9.22｜公式値：投票者数・投票率・候補者得票・開票率・無効票確定・残票。"
+    "v0.9.23｜公式値：投票者数・投票率・候補者得票・開票率・無効票確定・残票。"
     "独自推計：推計無効票・推計有効残票・補正係数。推計値には『推計』『約』を付けています。"
 )
 
