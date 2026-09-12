@@ -47,7 +47,7 @@ with nav_back:
         st.rerun()
 with nav_label:
     st.markdown('<div class="portal-breadcrumb">沖縄選挙ポータル / 過去の選挙結果</div>', unsafe_allow_html=True)
-st.caption("v0.9.23 · NEW MAP · 模式配置")
+st.caption("v0.9.21 · NEW MAP · 模式配置")
 
 st.markdown(
     """
@@ -136,15 +136,10 @@ def load_json(name):
 
 @st.cache_data
 def load_all():
-    results = pd.DataFrame(load_json("statewide_results_v4.json"))
-    elections = pd.DataFrame(load_json("elections_v2.json"))
-    # GOV2026は投開票前のデモ用架空データのため、確定結果一覧からは除外する
-    results = results[results["election_id"] != "GOV2026"]
-    elections = elections[elections["election_id"] != "GOV2026"]
     return (
-        results,
-        elections,
-        pd.DataFrame(load_json("turnout_v2.json")),
+        pd.DataFrame(load_json("statewide_results.json")),
+        pd.DataFrame(load_json("elections.json")),
+        pd.DataFrame(load_json("turnout.json")),
         pd.DataFrame(load_json("municipalities.json")),
         load_json("map_layout_v0912.geojson"),
         load_json("map_layout_v0912.json"),
