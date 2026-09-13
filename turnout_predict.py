@@ -84,43 +84,62 @@ def _num(v):
         return None
 
 
-_ROUND_RE = re.compile(r"第(\d+)回\s*([\d:]+)現在")
+_TIME_TOKENS = ["10:00", "11:00", "14:00", "16:00", "18:00", "19:30"]
 
 
-def parse_turnout_blocks(raw: pd.DataFrame) -> dict:
+def _find_col(header: list, must_contain: list, must_not_contain: list = ()):
+    """ヘッダーの表記ゆれ（全角スペース混入・末尾空白など）を吸収して列を探す。"""
+    for i, h in enumerate(header):
+        t = str(h).strip().replace("\u3000", "")
+        if all(k in t for k in must_contain) and not any(k in t for k in must_not_contain):
+            return i
+    return None
+
+
+def parse_turnout_blocks(raw: pd.DataFrame):
     """
     02A_投票速報入力（ブロック形式）を解析し、時刻ラベルごとの
     {votes_total, electorate_total, rate} を返す。
     データが無いブロック（未発表）は rate=None になる。
+    表記ゆれに強くするため、タイトル・列名とも部分一致で探す。
+    診断用に、見つけたタイトル行の情報も合わせて返す。
     """
     n_rows, n_cols = raw.shape
     results = {}
+    debug_titles = []
     r = 0
     while r < n_rows:
         title = str(raw.iat[r, 0]) if pd.notna(raw.iat[r, 0]) else ""
         label = None
-        if "最終" in title and "投票速報" in title:
-            label = FINAL_LABEL
-        else:
-            m = _ROUND_RE.search(title)
-            if m:
-                label = m.group(2)
+        if "投票速報" in title:
+            if "最終" in title:
+                label = FINAL_LABEL
+            else:
+                for tok in _TIME_TOKENS:
+                    if tok in title:
+                        label = tok
+                        break
         if label:
             header_row = r + 1
             if header_row >= n_rows:
+                debug_titles.append((title.strip(), label, "ヘッダー行が見つからない"))
                 break
-            header = [str(raw.iat[header_row, c]) for c in range(n_cols)]
-            try:
-                col_voters = header.index("投票者数_計")
-                col_electorate = header.index("当日有権者数_計")
-            except ValueError:
-                r += 1
+            header = [raw.iat[header_row, c] for c in range(n_cols)]
+            col_voters = _find_col(header, ["投票者数", "計"], ["男", "女"])
+            col_electorate = _find_col(header, ["当日有権者数", "計"], ["男", "女"])
+            if col_voters is None or col_electorate is None:
+                debug_titles.append((
+                    title.strip(), label,
+                    f"列が見つからない（投票者数列={col_voters}, 当日有権者数列={col_electorate}）"
+                ))
+                r = header_row + 1
                 continue
             votes_sum = 0.0
             elect_sum = 0.0
             any_data = False
+            rows_read = 0
             data_row = header_row + 1
-            while data_row < n_rows:
+            while data_row < n_rows and rows_read < 41:
                 name_cell = raw.iat[data_row, 1] if n_cols > 1 else None
                 if pd.isna(name_cell) or str(name_cell).strip() == "":
                     break
@@ -132,16 +151,19 @@ def parse_turnout_blocks(raw: pd.DataFrame) -> dict:
                 if e is not None:
                     elect_sum += e
                 data_row += 1
+                rows_read += 1
             rate = round(100 * votes_sum / elect_sum, 4) if (any_data and elect_sum > 0) else None
             results[label] = {
                 "votes_total": votes_sum if any_data else None,
                 "electorate_total": elect_sum if elect_sum > 0 else None,
                 "rate": rate,
             }
-            r = data_row
+            debug_titles.append((title.strip(), label, f"{rows_read}行読み込み・データ有無={any_data}"))
+            # 次のタイトルを探すため、41行分読み終えた次の行から再開する
+            r = header_row + 1 + 41
         else:
             r += 1
-    return results
+    return results, debug_titles
 
 
 @st.cache_data(ttl=12, show_spinner=False)
@@ -284,11 +306,12 @@ history = load_history()
 
 fetch_error = None
 try:
-    current_series = load_current_timeseries()
-    st.session_state["turnout_series_cache"] = current_series
+    current_series, debug_titles = load_current_timeseries()
+    st.session_state["turnout_series_cache"] = (current_series, debug_titles)
 except Exception as e:
     fetch_error = str(e)
-    current_series = st.session_state.get("turnout_series_cache")
+    cached = st.session_state.get("turnout_series_cache")
+    current_series, debug_titles = cached if cached else (None, [])
 
 if current_series is None:
     st.error("投票率データを取得できません。しばらくしてから再読み込みしてください。"
@@ -301,7 +324,21 @@ pred = compute_prediction(current_series, history)
 
 if pred is None:
     st.info("まだ投票率の実績が入力されていません。10:00の速報が入ると予測が始まります。")
+    with st.expander("うまく反映されない場合はこちら（読み取り診断）", expanded=bool(debug_titles)):
+        if not debug_titles:
+            st.write("「02A_投票速報入力」シートの中に、投票速報のタイトル行が1つも見つかりませんでした。シート名・タブ構成をご確認ください。")
+        else:
+            st.dataframe(
+                pd.DataFrame(debug_titles, columns=["見つかったタイトル行", "時刻ラベル", "読み取り結果"]),
+                hide_index=True, use_container_width=True,
+            )
     st.stop()
+
+with st.expander("読み取り診断（正常時は参考情報）", expanded=False):
+    st.dataframe(
+        pd.DataFrame(debug_titles, columns=["見つかったタイトル行", "時刻ラベル", "読み取り結果"]),
+        hide_index=True, use_container_width=True,
+    )
 
 st.markdown(
     f"""

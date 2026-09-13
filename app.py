@@ -107,7 +107,7 @@ div[data-testid="stButton"] > button {
         unsafe_allow_html=True,
     )
 
-    st.markdown('<div class="portal-kicker">OKINAWA ELECTION PORTAL · v0.9.29 · LIVE SHEET</div>', unsafe_allow_html=True)
+    st.markdown('<div class="portal-kicker">OKINAWA ELECTION PORTAL · v0.9.30 · LIVE SHEET</div>', unsafe_allow_html=True)
     st.markdown('<div class="portal-title">沖縄選挙ポータル</div>', unsafe_allow_html=True)
     st.markdown(
         '<div class="portal-deck">沖縄の選挙を、開票速報と過去の確定結果の2つの入口から見るためのポータルです。</div>',
@@ -195,7 +195,7 @@ div[data-testid="stButton"] > button {
             go("shizuoka")
 
     st.markdown(
-        '<div class="portal-foot">Okinawa Election Portal — v0.9.29</div>',
+        '<div class="portal-foot">Okinawa Election Portal — v0.9.30</div>',
         unsafe_allow_html=True,
     )
 
