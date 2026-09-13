@@ -1,7 +1,7 @@
 [
   {
     "path": "README.md",
-    "size_bytes": 25220
+    "size_bytes": 24094
   },
   {
     "path": "app.py",
@@ -81,7 +81,7 @@
   },
   {
     "path": "live_data.py",
-    "size_bytes": 24893
+    "size_bytes": 23779
   },
   {
     "path": "live_results.py",
@@ -90,10 +90,6 @@
   {
     "path": "matrix_results.py",
     "size_bytes": 23341
-  },
-  {
-    "path": "portal_config.py",
-    "size_bytes": 578
   },
   {
     "path": "requirements.txt",
@@ -105,6 +101,6 @@
   },
   {
     "path": "turnout_predict.py",
-    "size_bytes": 24325
+    "size_bytes": 23302
   }
 ]

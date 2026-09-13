@@ -8,7 +8,7 @@ from urllib.request import Request, urlopen
 
 import pandas as pd
 
-from portal_config import GOOGLE_SHEET_ID
+GOOGLE_SHEET_ID = "1s6H3je6DPCSNIzwcOQpA39t_ecISuuAjY4qT2a291is"
 SHEET_NAMES = [
     "00_候補者",
     "01_市町村マスター",
@@ -17,7 +17,6 @@ SHEET_NAMES = [
     "04_県集計",
     "06_無効票補正",
 ]
-OPTIONAL_SHEET_NAMES = ["07B_確定投票率"]
 
 CURRENT_ATTR_BY_NAME = {
     "古謝 げんた": "保守系",
@@ -55,12 +54,6 @@ def load_google_workbook(sheet_id: str = GOOGLE_SHEET_ID) -> dict[str, pd.DataFr
     book = {}
     for name in SHEET_NAMES:
         book[name] = fetch_sheet_csv(name, sheet_id=sheet_id)
-    for name in OPTIONAL_SHEET_NAMES:
-        try:
-            book[name] = fetch_sheet_csv(name, sheet_id=sheet_id)
-        except LiveSheetError:
-            # Older workbooks do not have this tab. Keep backwards compatibility.
-            book[name] = pd.DataFrame()
     return book
 
 
@@ -245,21 +238,6 @@ def build_live_models(book: dict[str, pd.DataFrame], municipalities: pd.DataFram
         on="municipality_name", how="left"
     )
 
-    # 市町村が先に公表した確定投票率・投票者数を07Bから取り込む。
-    # 07Bの「表示」列は、県選管最終が入れば県選管値を最優先する式になっている。
-    turnout_final = book.get("07B_確定投票率", pd.DataFrame()).copy()
-    if not turnout_final.empty and "市町村名" in turnout_final.columns:
-        turnout_final["municipality_name"] = turnout_final["市町村名"].astype(str).str.strip()
-        turnout_final["turnout_final_voters"] = _series_num(turnout_final, "表示投票者数")
-        turnout_final["turnout_final_rate"] = _series_rate(turnout_final, "表示確定投票率")
-        turnout_final["turnout_final_state"] = _series_text(turnout_final, "表示区分")
-        keep = ["municipality_name", "turnout_final_voters", "turnout_final_rate", "turnout_final_state"]
-        opening = opening.merge(turnout_final[keep], on="municipality_name", how="left")
-        opening["voting_voters"] = opening["turnout_final_voters"].combine_first(opening["voting_voters"])
-        opening["turnout_rate"] = opening["turnout_final_rate"].combine_first(opening["turnout_rate"])
-        has_final_state = opening["turnout_final_state"].astype(str).str.strip().isin(["暫定", "市町村確定", "県選管確定"])
-        opening.loc[has_final_state, "voting_state"] = opening.loc[has_final_state, "turnout_final_state"]
-
     opening["voters_total"] = _series_num(opening, "投票者数")
     opening["counted_ballots"] = _series_num(opening, "開票済票数")
 
@@ -304,6 +282,13 @@ def build_live_models(book: dict[str, pd.DataFrame], municipalities: pd.DataFram
     opening["remaining_votes"] = opening["remaining_votes"].fillna(calc_remaining)
     calc_reporting = (opening["counted_ballots"] / opening["voters_total"].replace(0, pd.NA)).clip(lower=0, upper=1)
     opening["reporting_rate"] = opening["reporting_rate"].fillna(calc_reporting)
+
+    # 開票率100%（丸め誤差を考慮し99.9999%以上）の自治体は、開票作業自体が
+    # 完了しているため、残票は必ず0票とする。投票者数と候補者得票合計との
+    # 差分（無効票の未反映分など）が残票として表示されないよう、シート由来の
+    # 値・計算値のいずれであっても、この判定を最終的な上書きルールとして適用する。
+    is_full_report = opening["reporting_rate"] >= 0.9999995
+    opening.loc[is_full_report.fillna(False), "remaining_votes"] = 0.0
 
     # 過去知事選（2018・2022）の無効率をもとにした無効票推計のフォールバック。
     # 03_開票速報や06_無効票補正にあらかじめ計算済みの値が入っていればそれを

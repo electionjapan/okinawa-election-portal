@@ -81,7 +81,7 @@ with nav_back:
 with nav_label:
     st.markdown('<div class="portal-breadcrumb">沖縄選挙ポータル ／ 静岡県 過去の選挙</div>', unsafe_allow_html=True)
 st.markdown('<div class="portal-nav-spacer"></div>', unsafe_allow_html=True)
-st.caption("v0.9.31 · SHIZUOKA")
+st.caption("v0.9.32 · SHIZUOKA")
 
 st.markdown('<div class="page-kicker">SHIZUOKA ELECTION ARCHIVE</div>', unsafe_allow_html=True)
 st.markdown('<div class="page-title">静岡県　過去の選挙</div>', unsafe_allow_html=True)
