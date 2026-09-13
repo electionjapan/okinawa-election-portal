@@ -70,6 +70,7 @@ div[data-testid="stAppViewContainer"] { padding-top: 0 !important; }
     background:#fff;
 }
 .portal-card-live { border-top-color:#C93238; }
+.portal-card-turnout { border-top-color:#B8860B; }
 .portal-card-history { border-top-color:#1675B9; }
 .portal-card-matrix { border-top-color:#222; }
 .portal-card-shizuoka { border-top-color:#5A7247; }
@@ -106,7 +107,7 @@ div[data-testid="stButton"] > button {
         unsafe_allow_html=True,
     )
 
-    st.markdown('<div class="portal-kicker">OKINAWA ELECTION PORTAL · v0.9.28 · LIVE SHEET</div>', unsafe_allow_html=True)
+    st.markdown('<div class="portal-kicker">OKINAWA ELECTION PORTAL · v0.9.29 · LIVE SHEET</div>', unsafe_allow_html=True)
     st.markdown('<div class="portal-title">沖縄選挙ポータル</div>', unsafe_allow_html=True)
     st.markdown(
         '<div class="portal-deck">沖縄の選挙を、開票速報と過去の確定結果の2つの入口から見るためのポータルです。</div>',
@@ -114,7 +115,7 @@ div[data-testid="stButton"] > button {
     )
     st.markdown('<div class="portal-rule"></div>', unsafe_allow_html=True)
 
-    c1, c2, c3, c4 = st.columns(4, gap="large")
+    c1, c2, c3 = st.columns(3, gap="large")
 
     with c1:
         st.markdown(
@@ -134,6 +135,21 @@ div[data-testid="stButton"] > button {
     with c2:
         st.markdown(
             """
+<div class="portal-card portal-card-turnout">
+  <div class="portal-card-title">投票率予測</div>
+  <div class="portal-card-copy">
+    当日の中間投票率と過去選挙の推移を比較し、最終投票率をリアルタイム予測。
+  </div>
+</div>
+""",
+            unsafe_allow_html=True,
+        )
+        if st.button("投票率予測を見る", key="home_turnout", type="primary", use_container_width=True):
+            go("turnout")
+
+    with c3:
+        st.markdown(
+            """
 <div class="portal-card portal-card-history">
   <div class="portal-card-title">過去の選挙結果</div>
   <div class="portal-card-copy">
@@ -146,7 +162,9 @@ div[data-testid="stButton"] > button {
         if st.button("過去の選挙結果を見る", key="home_history", use_container_width=True):
             go("history")
 
-    with c3:
+    c4, c5 = st.columns(2, gap="large")
+
+    with c4:
         st.markdown(
             """
 <div class="portal-card portal-card-matrix">
@@ -161,7 +179,7 @@ div[data-testid="stButton"] > button {
         if st.button("一覧で比較する", key="home_matrix", use_container_width=True):
             go("matrix")
 
-    with c4:
+    with c5:
         st.markdown(
             """
 <div class="portal-card portal-card-shizuoka">
@@ -177,7 +195,7 @@ div[data-testid="stButton"] > button {
             go("shizuoka")
 
     st.markdown(
-        '<div class="portal-foot">Okinawa Election Portal — v0.9.28</div>',
+        '<div class="portal-foot">Okinawa Election Portal — v0.9.29</div>',
         unsafe_allow_html=True,
     )
 
@@ -187,6 +205,8 @@ if page == "home":
     render_home()
 elif page == "live":
     exec(compile((APP_DIR / "live_results.py").read_text(encoding="utf-8"), "live_results.py", "exec"))
+elif page == "turnout":
+    exec(compile((APP_DIR / "turnout_predict.py").read_text(encoding="utf-8"), "turnout_predict.py", "exec"))
 elif page == "history":
     exec(compile((APP_DIR / "historical_results.py").read_text(encoding="utf-8"), "historical_results.py", "exec"))
 elif page == "matrix":
