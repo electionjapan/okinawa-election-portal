@@ -31,7 +31,8 @@ except Exception:
 APP_DIR = Path(__file__).resolve().parent
 DATA_DIR = APP_DIR / "data"
 
-SHEET_ID = "1s6H3je6DPCSNIzwcOQpA39t_ecISuuAjY4qT2a291is"
+from portal_config import GOOGLE_SHEET_ID
+SHEET_ID = GOOGLE_SHEET_ID
 GID_02A = 87116811 if False else None  # gid未確定の場合はシート名でgvizアクセスする
 
 RED = "#C93238"
@@ -51,17 +52,14 @@ class FetchError(RuntimeError):
     pass
 
 
-def _fetch_sheet_gviz(sheet_name: str, timeout: float = 15.0) -> pd.DataFrame:
-    """
-    シート名を指定してgviz経由でCSVを取得する。
-    &headers=0 を必ず付け、Google側にヘッダー行を自動推測させない
-    （自動推測に任せると、実際のタイトル行・ヘッダー行がずれて読み込まれる）。
-    """
+def _fetch_sheet_gviz(sheet_name: str, timeout: float = 15.0, headers: int | None = 0) -> pd.DataFrame:
+    """GViz CSVを生の行列として取得。headersを変えて再試行できるようにする。"""
+    headers_q = "" if headers is None else f"&headers={headers}"
     url = (
         f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq"
-        f"?tqx=out:csv&sheet={quote(sheet_name)}&headers=0"
+        f"?tqx=out:csv&sheet={quote(sheet_name)}{headers_q}"
     )
-    req = Request(url, headers={"User-Agent": "Mozilla/5.0 OkinawaElectionPortal/0.9.29"})
+    req = Request(url, headers={"User-Agent": "Mozilla/5.0 OkinawaElectionPortal/0.9.32"})
     try:
         with urlopen(req, timeout=timeout) as resp:
             status = resp.status
@@ -72,8 +70,17 @@ def _fetch_sheet_gviz(sheet_name: str, timeout: float = 15.0) -> pd.DataFrame:
         raise FetchError(f"HTTP {status}")
     text = content.decode("utf-8-sig", errors="replace")
     if text.lstrip().lower().startswith("<!doctype html") or "<html" in text[:400].lower():
-        raise FetchError("CSVではなくHTMLが返りました。共有設定を確認してください。")
+        raise FetchError("CSVではなくHTMLが返りました。共有設定と接続先IDを確認してください。")
     return pd.read_csv(io.StringIO(text), header=None, dtype=str, keep_default_na=False)
+
+
+def _row_text(raw: pd.DataFrame, r: int) -> str:
+    vals = []
+    for v in raw.iloc[r].tolist():
+        t = str(v).strip()
+        if t and t.lower() != "nan":
+            vals.append(t)
+    return " ".join(vals)
 
 
 def _num(v):
@@ -110,111 +117,140 @@ def _find_col(header: list, must_contain: list, must_not_contain: list = ()):
     return None
 
 
+def _parse_one_block(raw: pd.DataFrame, label: str, data_start: int, name_col: int, source_note: str):
+    n_rows, n_cols = raw.shape
+    col_electorate = name_col + 3
+    col_voters = name_col + 6
+    votes_sum = 0.0
+    elect_sum = 0.0
+    n_valid = 0
+    names_seen = 0
+    for rr in range(data_start, min(data_start + N_MUNI, n_rows)):
+        if name_col >= n_cols:
+            break
+        name = str(raw.iat[rr, name_col]).strip()
+        if not name:
+            break
+        names_seen += 1
+        if col_electorate >= n_cols or col_voters >= n_cols:
+            continue
+        e = _num(raw.iat[rr, col_electorate])
+        v = _num(raw.iat[rr, col_voters])
+        if e is not None and v is not None:
+            elect_sum += e
+            votes_sum += v
+            n_valid += 1
+    rate_raw = round(100 * votes_sum / elect_sum, 4) if elect_sum > 0 else None
+    reasons = []
+    adopted = True
+    if n_valid < N_MUNI:
+        adopted = False
+        reasons.append(f"{n_valid}/{N_MUNI}自治体")
+    if elect_sum > 0:
+        diff_ratio = abs(elect_sum - ELECTORATE_SANITY_TARGET) / ELECTORATE_SANITY_TARGET
+        if diff_ratio > ELECTORATE_SANITY_TOLERANCE:
+            adopted = False
+            reasons.append(f"有権者合計が想定から{diff_ratio*100:.1f}%乖離")
+    if votes_sum <= 0:
+        adopted = False
+        reasons.append("投票者数が0")
+    return {
+        "votes_total": votes_sum if n_valid else None,
+        "electorate_total": elect_sum if n_valid else None,
+        "rate": rate_raw if adopted else None,
+        "rate_raw": rate_raw,
+        "n_munis": n_valid,
+        "adopted": adopted,
+    }, {
+        "時刻": label, "検出方法": source_note, "自治体数": f"{n_valid}/{N_MUNI}",
+        "有権者数合計": None if elect_sum == 0 else int(elect_sum),
+        "投票者数合計": None if votes_sum == 0 else int(votes_sum),
+        "投票率": None if rate_raw is None else f"{rate_raw:.2f}%",
+        "判定": "実績として採用" if adopted else "未採用",
+        "理由": "／".join(reasons),
+    }
+
+
 def parse_turnout_blocks(raw: pd.DataFrame):
     """
-    02A_投票速報入力（ブロック形式）を解析し、時刻ラベルごとの
-    {votes_total, electorate_total, rate, n_munis, adopted, reason} を返す。
-
-    採用条件（すべて満たすときのみ adopted=True）：
-      - 41市町村すべてで当日有権者数_計・投票者数_計が数値で入っている
-      - 有権者数合計が既知の全県当日有権者数の±2%以内
-      - 投票者数合計が0より大きい
+    02Aを解析する。GVizがタイトル/ヘッダーを欠落・結合しても、
+    各ブロック先頭の「那覇市」をアンカーにして復元できる。
     """
     n_rows, n_cols = raw.shape
+    labels = CHECKPOINTS + [FINAL_LABEL]
     results = {}
     debug_rows = []
-    r = 0
-    while r < n_rows:
-        title = str(raw.iat[r, 0]) if pd.notna(raw.iat[r, 0]) else ""
-        label = None
-        if "投票速報" in title:
-            if "最終" in title:
-                label = FINAL_LABEL
-            else:
-                for tok in _TIME_TOKENS:
-                    if tok in title:
-                        label = tok
-                        break
+
+    # A: タイトル行から検出。列Aだけでなく行全体を検索する。
+    title_hits = []
+    for r in range(n_rows):
+        text = _row_text(raw, r)
+        if "投票速報" not in text:
+            continue
+        label = FINAL_LABEL if "最終" in text else next((t for t in CHECKPOINTS if t in text), None)
         if label:
-            header_row = r + 1
-            if header_row >= n_rows:
-                debug_rows.append({"時刻": label, "見つかったタイトル行": title.strip(),
-                                    "自治体数": "0/41", "有権者数合計": None, "投票者数合計": None,
-                                    "投票率": None, "判定": "未採用", "理由": "ヘッダー行が見つからない"})
-                break
-            header = [raw.iat[header_row, c] for c in range(n_cols)]
-            col_voters = _find_col(header, ["投票者数", "計"], ["男", "女"])
-            col_electorate = _find_col(header, ["当日有権者数", "計"], ["男", "女"])
-            used_fallback = False
-            if col_voters is None or col_electorate is None:
-                # 列見出しの検出に失敗した場合は固定列インデックスにフォールバックする
-                col_voters = COL_VOTERS_FIXED
-                col_electorate = COL_ELECTORATE_FIXED
-                used_fallback = True
+            title_hits.append((label, r, text))
 
-            votes_sum = 0.0
-            elect_sum = 0.0
-            n_valid = 0
-            data_row = header_row + 1
-            rows_scanned = 0
-            while data_row < n_rows and rows_scanned < N_MUNI:
-                name_cell = raw.iat[data_row, COL_NAME_FIXED] if n_cols > COL_NAME_FIXED else None
-                if pd.isna(name_cell) or str(name_cell).strip() == "":
+    for label, r, text in title_hits:
+        # タイトル後3行以内で「那覇市」を探し、その列を自治体名列として使う。
+        anchor = None
+        for rr in range(r + 1, min(r + 5, n_rows)):
+            for cc in range(n_cols):
+                if str(raw.iat[rr, cc]).strip() == "那覇市":
+                    anchor = (rr, cc)
                     break
-                v = _num(raw.iat[data_row, col_voters])
-                e = _num(raw.iat[data_row, col_electorate])
-                if v is not None and e is not None:
-                    votes_sum += v
-                    elect_sum += e
-                    n_valid += 1
-                data_row += 1
-                rows_scanned += 1
+            if anchor:
+                break
+        if anchor:
+            entry, dbg = _parse_one_block(raw, label, anchor[0], anchor[1], "タイトル＋那覇市アンカー")
+            dbg["見つかったタイトル行"] = text
+            results[label] = entry
+            debug_rows.append(dbg)
 
-            rate = round(100 * votes_sum / elect_sum, 4) if elect_sum > 0 else None
+    # B: タイトルがGVizに消されても、各ブロックに固定で存在する「那覇市」を全件探す。
+    # 02Aには7ブロックが縦に同順で並ぶため、上から10/11/14/16/18/19:30/最終に対応する。
+    anchors = []
+    for r in range(n_rows):
+        for c in range(n_cols):
+            if str(raw.iat[r, c]).strip() == "那覇市":
+                anchors.append((r, c))
+                break
+    anchors = sorted(set(anchors))
+    if anchors:
+        for i, (r, c) in enumerate(anchors[:len(labels)]):
+            label = labels[i]
+            if label in results:
+                continue
+            entry, dbg = _parse_one_block(raw, label, r, c, "那覇市アンカー（タイトル欠落フォールバック）")
+            dbg["見つかったタイトル行"] = "（GViz出力ではタイトル行を取得できず）"
+            results[label] = entry
+            debug_rows.append(dbg)
 
-            adopted = True
-            reasons = []
-            if n_valid < N_MUNI:
-                adopted = False
-                reasons.append(f"{n_valid}/{N_MUNI}自治体までしか入力されていません")
-            if elect_sum > 0:
-                diff_ratio = abs(elect_sum - ELECTORATE_SANITY_TARGET) / ELECTORATE_SANITY_TARGET
-                if diff_ratio > ELECTORATE_SANITY_TOLERANCE:
-                    adopted = False
-                    reasons.append(f"有権者数合計が想定({ELECTORATE_SANITY_TARGET:,}人)から{diff_ratio*100:.1f}%乖離")
-            if votes_sum <= 0:
-                adopted = False
-                reasons.append("投票者数合計が0以下")
-            if used_fallback:
-                reasons.append("列見出しが検出できず固定列(E列・H列)で読み取り")
-
-            results[label] = {
-                "votes_total": votes_sum if n_valid > 0 else None,
-                "electorate_total": elect_sum if n_valid > 0 else None,
-                "rate": rate if adopted else None,
-                "rate_raw": rate,
-                "n_munis": n_valid,
-                "adopted": adopted,
-            }
-            debug_rows.append({
-                "時刻": label, "見つかったタイトル行": title.strip(),
-                "自治体数": f"{n_valid}/{N_MUNI}",
-                "有権者数合計": None if elect_sum == 0 else int(elect_sum),
-                "投票者数合計": None if votes_sum == 0 else int(votes_sum),
-                "投票率": None if rate is None else f"{rate:.2f}%",
-                "判定": "実績として採用" if adopted else "未採用",
-                "理由": "／".join(reasons) if reasons else "",
-            })
-            r = header_row + 1 + N_MUNI
-        else:
-            r += 1
+    debug_rows.sort(key=lambda d: labels.index(d["時刻"]) if d["時刻"] in labels else 999)
     return results, debug_rows
 
 
 @st.cache_data(ttl=12, show_spinner=False)
 def load_current_timeseries():
-    raw = _fetch_sheet_gviz("02A_投票速報入力")
-    return parse_turnout_blocks(raw)
+    # GVizのヘッダー推測はシート内容によって挙動が変わるため複数方式を試し、
+    # 最も多くブロックを復元できた結果を採用する。
+    attempts = []
+    errors = []
+    for headers in (0, None, 1, 2):
+        try:
+            raw = _fetch_sheet_gviz("02A_投票速報入力", headers=headers)
+            series, debug = parse_turnout_blocks(raw)
+            adopted = sum(1 for v in series.values() if v.get("adopted"))
+            attempts.append((len(series), adopted, series, debug, headers, raw.shape))
+        except Exception as e:
+            errors.append(f"headers={headers}: {e}")
+    if not attempts:
+        raise FetchError(" / ".join(errors) if errors else "02Aを取得できません")
+    attempts.sort(key=lambda x: (x[1], x[0]), reverse=True)
+    _, _, series, debug, used_headers, shape = attempts[0]
+    for row in debug:
+        row["GViz方式"] = f"headers={used_headers}; {shape[0]}行×{shape[1]}列"
+    return series, debug
 
 
 @st.cache_data
@@ -374,6 +410,7 @@ if fetch_error:
 
 def _render_diagnostics(expanded):
     with st.expander("読み取り診断", expanded=expanded):
+        st.caption(f"接続先スプレッドシートID: {SHEET_ID}")
         if not debug_rows:
             st.write("「02A_投票速報入力」シートの中に、投票速報のタイトル行が1つも見つかりませんでした。シート名・タブ構成をご確認ください。")
         else:

@@ -8,7 +8,7 @@ from urllib.request import Request, urlopen
 
 import pandas as pd
 
-GOOGLE_SHEET_ID = "1s6H3je6DPCSNIzwcOQpA39t_ecISuuAjY4qT2a291is"
+from portal_config import GOOGLE_SHEET_ID
 SHEET_NAMES = [
     "00_候補者",
     "01_市町村マスター",
@@ -17,6 +17,7 @@ SHEET_NAMES = [
     "04_県集計",
     "06_無効票補正",
 ]
+OPTIONAL_SHEET_NAMES = ["07B_確定投票率"]
 
 CURRENT_ATTR_BY_NAME = {
     "古謝 げんた": "保守系",
@@ -54,6 +55,12 @@ def load_google_workbook(sheet_id: str = GOOGLE_SHEET_ID) -> dict[str, pd.DataFr
     book = {}
     for name in SHEET_NAMES:
         book[name] = fetch_sheet_csv(name, sheet_id=sheet_id)
+    for name in OPTIONAL_SHEET_NAMES:
+        try:
+            book[name] = fetch_sheet_csv(name, sheet_id=sheet_id)
+        except LiveSheetError:
+            # Older workbooks do not have this tab. Keep backwards compatibility.
+            book[name] = pd.DataFrame()
     return book
 
 
@@ -237,6 +244,21 @@ def build_live_models(book: dict[str, pd.DataFrame], municipalities: pd.DataFram
         master2[["municipality_name", "display_electorate"]],
         on="municipality_name", how="left"
     )
+
+    # 市町村が先に公表した確定投票率・投票者数を07Bから取り込む。
+    # 07Bの「表示」列は、県選管最終が入れば県選管値を最優先する式になっている。
+    turnout_final = book.get("07B_確定投票率", pd.DataFrame()).copy()
+    if not turnout_final.empty and "市町村名" in turnout_final.columns:
+        turnout_final["municipality_name"] = turnout_final["市町村名"].astype(str).str.strip()
+        turnout_final["turnout_final_voters"] = _series_num(turnout_final, "表示投票者数")
+        turnout_final["turnout_final_rate"] = _series_rate(turnout_final, "表示確定投票率")
+        turnout_final["turnout_final_state"] = _series_text(turnout_final, "表示区分")
+        keep = ["municipality_name", "turnout_final_voters", "turnout_final_rate", "turnout_final_state"]
+        opening = opening.merge(turnout_final[keep], on="municipality_name", how="left")
+        opening["voting_voters"] = opening["turnout_final_voters"].combine_first(opening["voting_voters"])
+        opening["turnout_rate"] = opening["turnout_final_rate"].combine_first(opening["turnout_rate"])
+        has_final_state = opening["turnout_final_state"].astype(str).str.strip().isin(["暫定", "市町村確定", "県選管確定"])
+        opening.loc[has_final_state, "voting_state"] = opening.loc[has_final_state, "turnout_final_state"]
 
     opening["voters_total"] = _series_num(opening, "投票者数")
     opening["counted_ballots"] = _series_num(opening, "開票済票数")
