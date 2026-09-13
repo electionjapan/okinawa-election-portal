@@ -52,10 +52,14 @@ class FetchError(RuntimeError):
 
 
 def _fetch_sheet_gviz(sheet_name: str, timeout: float = 15.0) -> pd.DataFrame:
-    """シート名を指定してgviz経由でCSVを取得する（gidを確定できていない場合の経路）。"""
+    """
+    シート名を指定してgviz経由でCSVを取得する。
+    &headers=0 を必ず付け、Google側にヘッダー行を自動推測させない
+    （自動推測に任せると、実際のタイトル行・ヘッダー行がずれて読み込まれる）。
+    """
     url = (
         f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq"
-        f"?tqx=out:csv&sheet={quote(sheet_name)}"
+        f"?tqx=out:csv&sheet={quote(sheet_name)}&headers=0"
     )
     req = Request(url, headers={"User-Agent": "Mozilla/5.0 OkinawaElectionPortal/0.9.29"})
     try:
@@ -85,6 +89,16 @@ def _num(v):
 
 
 _TIME_TOKENS = ["10:00", "11:00", "14:00", "16:00", "18:00", "19:30"]
+N_MUNI = 41
+
+# 02A_投票速報入力の固定列インデックス（列見出しの検出に失敗した場合のフォールバック）
+COL_ELECTORATE_FIXED = 4   # E列 当日有権者数_計
+COL_VOTERS_FIXED = 7       # H列 投票者数_計
+COL_NAME_FIXED = 1         # B列 市町村名
+
+# 全県当日有権者数（固定・投票終了まで変わらない）。合計の妥当性チェックに使う。
+ELECTORATE_SANITY_TARGET = CURRENT_ELECTORATE
+ELECTORATE_SANITY_TOLERANCE = 0.02  # ±2%まで許容
 
 
 def _find_col(header: list, must_contain: list, must_not_contain: list = ()):
@@ -99,14 +113,16 @@ def _find_col(header: list, must_contain: list, must_not_contain: list = ()):
 def parse_turnout_blocks(raw: pd.DataFrame):
     """
     02A_投票速報入力（ブロック形式）を解析し、時刻ラベルごとの
-    {votes_total, electorate_total, rate} を返す。
-    データが無いブロック（未発表）は rate=None になる。
-    表記ゆれに強くするため、タイトル・列名とも部分一致で探す。
-    診断用に、見つけたタイトル行の情報も合わせて返す。
+    {votes_total, electorate_total, rate, n_munis, adopted, reason} を返す。
+
+    採用条件（すべて満たすときのみ adopted=True）：
+      - 41市町村すべてで当日有権者数_計・投票者数_計が数値で入っている
+      - 有権者数合計が既知の全県当日有権者数の±2%以内
+      - 投票者数合計が0より大きい
     """
     n_rows, n_cols = raw.shape
     results = {}
-    debug_titles = []
+    debug_rows = []
     r = 0
     while r < n_rows:
         title = str(raw.iat[r, 0]) if pd.notna(raw.iat[r, 0]) else ""
@@ -122,48 +138,77 @@ def parse_turnout_blocks(raw: pd.DataFrame):
         if label:
             header_row = r + 1
             if header_row >= n_rows:
-                debug_titles.append((title.strip(), label, "ヘッダー行が見つからない"))
+                debug_rows.append({"時刻": label, "見つかったタイトル行": title.strip(),
+                                    "自治体数": "0/41", "有権者数合計": None, "投票者数合計": None,
+                                    "投票率": None, "判定": "未採用", "理由": "ヘッダー行が見つからない"})
                 break
             header = [raw.iat[header_row, c] for c in range(n_cols)]
             col_voters = _find_col(header, ["投票者数", "計"], ["男", "女"])
             col_electorate = _find_col(header, ["当日有権者数", "計"], ["男", "女"])
+            used_fallback = False
             if col_voters is None or col_electorate is None:
-                debug_titles.append((
-                    title.strip(), label,
-                    f"列が見つからない（投票者数列={col_voters}, 当日有権者数列={col_electorate}）"
-                ))
-                r = header_row + 1
-                continue
+                # 列見出しの検出に失敗した場合は固定列インデックスにフォールバックする
+                col_voters = COL_VOTERS_FIXED
+                col_electorate = COL_ELECTORATE_FIXED
+                used_fallback = True
+
             votes_sum = 0.0
             elect_sum = 0.0
-            any_data = False
-            rows_read = 0
+            n_valid = 0
             data_row = header_row + 1
-            while data_row < n_rows and rows_read < 41:
-                name_cell = raw.iat[data_row, 1] if n_cols > 1 else None
+            rows_scanned = 0
+            while data_row < n_rows and rows_scanned < N_MUNI:
+                name_cell = raw.iat[data_row, COL_NAME_FIXED] if n_cols > COL_NAME_FIXED else None
                 if pd.isna(name_cell) or str(name_cell).strip() == "":
                     break
                 v = _num(raw.iat[data_row, col_voters])
                 e = _num(raw.iat[data_row, col_electorate])
-                if v is not None:
+                if v is not None and e is not None:
                     votes_sum += v
-                    any_data = True
-                if e is not None:
                     elect_sum += e
+                    n_valid += 1
                 data_row += 1
-                rows_read += 1
-            rate = round(100 * votes_sum / elect_sum, 4) if (any_data and elect_sum > 0) else None
+                rows_scanned += 1
+
+            rate = round(100 * votes_sum / elect_sum, 4) if elect_sum > 0 else None
+
+            adopted = True
+            reasons = []
+            if n_valid < N_MUNI:
+                adopted = False
+                reasons.append(f"{n_valid}/{N_MUNI}自治体までしか入力されていません")
+            if elect_sum > 0:
+                diff_ratio = abs(elect_sum - ELECTORATE_SANITY_TARGET) / ELECTORATE_SANITY_TARGET
+                if diff_ratio > ELECTORATE_SANITY_TOLERANCE:
+                    adopted = False
+                    reasons.append(f"有権者数合計が想定({ELECTORATE_SANITY_TARGET:,}人)から{diff_ratio*100:.1f}%乖離")
+            if votes_sum <= 0:
+                adopted = False
+                reasons.append("投票者数合計が0以下")
+            if used_fallback:
+                reasons.append("列見出しが検出できず固定列(E列・H列)で読み取り")
+
             results[label] = {
-                "votes_total": votes_sum if any_data else None,
-                "electorate_total": elect_sum if elect_sum > 0 else None,
-                "rate": rate,
+                "votes_total": votes_sum if n_valid > 0 else None,
+                "electorate_total": elect_sum if n_valid > 0 else None,
+                "rate": rate if adopted else None,
+                "rate_raw": rate,
+                "n_munis": n_valid,
+                "adopted": adopted,
             }
-            debug_titles.append((title.strip(), label, f"{rows_read}行読み込み・データ有無={any_data}"))
-            # 次のタイトルを探すため、41行分読み終えた次の行から再開する
-            r = header_row + 1 + 41
+            debug_rows.append({
+                "時刻": label, "見つかったタイトル行": title.strip(),
+                "自治体数": f"{n_valid}/{N_MUNI}",
+                "有権者数合計": None if elect_sum == 0 else int(elect_sum),
+                "投票者数合計": None if votes_sum == 0 else int(votes_sum),
+                "投票率": None if rate is None else f"{rate:.2f}%",
+                "判定": "実績として採用" if adopted else "未採用",
+                "理由": "／".join(reasons) if reasons else "",
+            })
+            r = header_row + 1 + N_MUNI
         else:
             r += 1
-    return results, debug_titles
+    return results, debug_rows
 
 
 @st.cache_data(ttl=12, show_spinner=False)
@@ -180,13 +225,19 @@ def load_history():
 
 
 def latest_actual_checkpoint(current_series: dict):
-    """実績が入っている最後の時刻ラベルを返す（最終を除く）。無ければNone。"""
+    """全県実績として採用された最後の時刻ラベルを返す（最終を除く）。無ければNone。"""
     latest = None
     for label in CHECKPOINTS:
         entry = current_series.get(label)
-        if entry and entry.get("rate") is not None:
+        if entry and entry.get("adopted") and entry.get("rate") is not None:
             latest = label
     return latest
+
+
+def is_final_confirmed(current_series: dict) -> bool:
+    """最終ブロックが41市町村そろって正式採用されているかどうか。"""
+    entry = current_series.get(FINAL_LABEL)
+    return bool(entry and entry.get("adopted") and entry.get("rate") is not None)
 
 
 def compute_prediction(current_series: dict, history: dict):
@@ -306,12 +357,12 @@ history = load_history()
 
 fetch_error = None
 try:
-    current_series, debug_titles = load_current_timeseries()
-    st.session_state["turnout_series_cache"] = (current_series, debug_titles)
+    current_series, debug_rows = load_current_timeseries()
+    st.session_state["turnout_series_cache"] = (current_series, debug_rows)
 except Exception as e:
     fetch_error = str(e)
     cached = st.session_state.get("turnout_series_cache")
-    current_series, debug_titles = cached if cached else (None, [])
+    current_series, debug_rows = cached if cached else (None, [])
 
 if current_series is None:
     st.error("投票率データを取得できません。しばらくしてから再読み込みしてください。"
@@ -320,28 +371,42 @@ if current_series is None:
 if fetch_error:
     st.warning("直近のデータ取得に失敗したため、前回正常取得できたデータを表示しています。")
 
-pred = compute_prediction(current_series, history)
 
-if pred is None:
-    st.info("まだ投票率の実績が入力されていません。10:00の速報が入ると予測が始まります。")
-    with st.expander("うまく反映されない場合はこちら（読み取り診断）", expanded=bool(debug_titles)):
-        if not debug_titles:
+def _render_diagnostics(expanded):
+    with st.expander("読み取り診断", expanded=expanded):
+        if not debug_rows:
             st.write("「02A_投票速報入力」シートの中に、投票速報のタイトル行が1つも見つかりませんでした。シート名・タブ構成をご確認ください。")
         else:
-            st.dataframe(
-                pd.DataFrame(debug_titles, columns=["見つかったタイトル行", "時刻ラベル", "読み取り結果"]),
-                hide_index=True, use_container_width=True,
-            )
+            st.dataframe(pd.DataFrame(debug_rows), hide_index=True, use_container_width=True)
+
+
+final_done = is_final_confirmed(current_series)
+pred = None if final_done else compute_prediction(current_series, history)
+
+if not final_done and pred is None:
+    st.info("まだ全県の投票率実績が入力されていません。10:00の速報が41市町村そろうと予測が始まります。")
+    _render_diagnostics(expanded=True)
     st.stop()
 
-with st.expander("読み取り診断（正常時は参考情報）", expanded=False):
-    st.dataframe(
-        pd.DataFrame(debug_titles, columns=["見つかったタイトル行", "時刻ラベル", "読み取り結果"]),
-        hide_index=True, use_container_width=True,
+if final_done:
+    final_rate = current_series[FINAL_LABEL]["rate"]
+    st.markdown(
+        f"""
+<div class="predict-card">
+  <div class="predict-label">最終投票率</div>
+  <div class="predict-main">{final_rate:.2f}%</div>
+  <div class="sub-stat-row">
+    <div class="sub-stat"><div class="sub-stat-label">状態</div><div class="sub-stat-value">確定</div></div>
+    <div class="sub-stat"><div class="sub-stat-label">前回2022年知事選 最終</div><div class="sub-stat-value">{history['2022']['final']:.2f}%</div></div>
+  </div>
+</div>
+""",
+        unsafe_allow_html=True,
     )
-
-st.markdown(
-    f"""
+    st.caption("県選管の最終速報（41市町村すべて）が出そろいました。以降は予測ではなく確定値です。")
+else:
+    st.markdown(
+        f"""
 <div class="predict-card">
   <div class="predict-label">最終投票率予測</div>
   <div class="predict-main">{pred['predicted_final']:.1f}%</div>
@@ -352,12 +417,14 @@ st.markdown(
   </div>
 </div>
 """,
-    unsafe_allow_html=True,
-)
-st.caption(
-    f"予測は「今回の期日前投票相当率（{CURRENT_EARLY_EQUIV_RATE:.2f}%）＋{pred['latest']}現在の当日投票率＋"
-    "過去選挙から推定した以降の当日投票の上積み」の合計です。確定値ではなく予測値です。"
-)
+        unsafe_allow_html=True,
+    )
+    st.caption(
+        f"予測は「今回の期日前投票相当率（{CURRENT_EARLY_EQUIV_RATE:.2f}%）＋{pred['latest']}現在の当日投票率＋"
+        "過去選挙から推定した以降の当日投票の上積み」の合計です。確定値ではなく予測値です。"
+    )
+
+_render_diagnostics(expanded=False)
 
 # ---------------- chart ----------------
 x_labels = CHECKPOINTS + [FINAL_LABEL]
@@ -373,12 +440,15 @@ for key, h in history.items():
         hovertemplate="%{x}<br>" + h["label"] + "：%{y:.2f}%<extra></extra>",
     ))
 
-# 今回：実績（実線）
+# 今回：実績（実線）。最終が確定していれば最終点まで実績として含める
 actual_x, actual_y = [], []
 for c in CHECKPOINTS:
     entry = current_series.get(c)
     if entry and entry.get("rate") is not None:
         actual_x.append(c); actual_y.append(entry["rate"])
+if final_done:
+    actual_x.append(FINAL_LABEL)
+    actual_y.append(current_series[FINAL_LABEL]["rate"])
 fig.add_trace(go.Scatter(
     x=actual_x, y=actual_y, mode="lines+markers+text", name="2026年知事選（今回・実績）",
     line=dict(color=RED, width=4), marker=dict(size=9, color=RED),
@@ -387,19 +457,28 @@ fig.add_trace(go.Scatter(
     hovertemplate="%{x}<br>今回：%{y:.2f}%<extra></extra>",
 ))
 
-# 今回：予測（点線）。最新実績点から始めて未来点へつなぐ
-pred_x = [pred["latest"]] + list(pred["future_points"].keys())
-pred_y = [pred["current_rate_now"]] + list(pred["future_points"].values())
-fig.add_trace(go.Scatter(
-    x=pred_x, y=pred_y, mode="lines+markers+text", name="2026年知事選（今回・予測）",
-    line=dict(color=RED, width=3, dash="dot"),
-    marker=dict(size=[6] * (len(pred_x) - 1) + [14], color=RED,
-                symbol=["circle"] * (len(pred_x) - 1) + ["diamond"]),
-    text=[""] * (len(pred_x) - 1) + [f"予測 {pred_y[-1]:.1f}%"],
-    textposition="top center",
-    textfont=dict(size=13, color=RED, family="Meiryo, Yu Gothic, sans-serif"),
-    hovertemplate="%{x}（予測）<br>%{y:.2f}%<extra></extra>",
-))
+if final_done:
+    fig.add_trace(go.Scatter(
+        x=[FINAL_LABEL], y=[actual_y[-1]], mode="markers+text", name="確定",
+        marker=dict(size=16, color=RED, symbol="diamond", line=dict(color="white", width=1.5)),
+        text=[f"確定 {actual_y[-1]:.2f}%"], textposition="top center",
+        textfont=dict(size=13, color=RED, family="Meiryo, Yu Gothic, sans-serif"),
+        hoverinfo="skip", showlegend=False,
+    ))
+else:
+    # 今回：予測（点線）。最新実績点から始めて未来点へつなぐ
+    pred_x = [pred["latest"]] + list(pred["future_points"].keys())
+    pred_y = [pred["current_rate_now"]] + list(pred["future_points"].values())
+    fig.add_trace(go.Scatter(
+        x=pred_x, y=pred_y, mode="lines+markers+text", name="2026年知事選（今回・予測）",
+        line=dict(color=RED, width=3, dash="dot"),
+        marker=dict(size=[6] * (len(pred_x) - 1) + [14], color=RED,
+                    symbol=["circle"] * (len(pred_x) - 1) + ["diamond"]),
+        text=[""] * (len(pred_x) - 1) + [f"予測 {pred_y[-1]:.1f}%"],
+        textposition="top center",
+        textfont=dict(size=13, color=RED, family="Meiryo, Yu Gothic, sans-serif"),
+        hovertemplate="%{x}（予測）<br>%{y:.2f}%<extra></extra>",
+    ))
 
 fig.update_layout(
     height=480, margin=dict(l=10, r=10, t=10, b=10),
@@ -422,21 +501,22 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-with st.expander("予測の根拠（過去選挙ごとの内訳）", expanded=False):
-    rows = []
-    for key, h in history.items():
-        cp = h["checkpoints"].get(pred["latest"])
-        lift = None if cp is None else h["final"] - h["early_equiv_rate"] - cp
-        rows.append({
-            "選挙": h["label"],
-            "ウェイト": f"{h['weight']*100:.0f}%",
-            f"{pred['latest']}投票率": "―" if cp is None else f"{cp:.2f}%",
-            "期日前投票相当率": f"{h['early_equiv_rate']:.2f}%",
-            "最終投票率": f"{h['final']:.2f}%",
-            f"{pred['latest']}以降の上積み": "―" if lift is None else f"{lift:.2f}pt",
-        })
-    st.dataframe(pd.DataFrame(rows), hide_index=True, use_container_width=True)
-    st.caption(
-        f"今回の期日前投票相当率＝期日前投票者数{CURRENT_EARLY_VOTERS:,}人 ÷ 当日有権者数{CURRENT_ELECTORATE:,}人 ＝ "
-        f"{CURRENT_EARLY_EQUIV_RATE:.4f}%。加重平均した上積みは{pred['weighted_lift_final']:.4f}ptです。"
-    )
+if not final_done:
+    with st.expander("予測の根拠（過去選挙ごとの内訳）", expanded=False):
+        rows = []
+        for key, h in history.items():
+            cp = h["checkpoints"].get(pred["latest"])
+            lift = None if cp is None else h["final"] - h["early_equiv_rate"] - cp
+            rows.append({
+                "選挙": h["label"],
+                "ウェイト": f"{h['weight']*100:.0f}%",
+                f"{pred['latest']}投票率": "―" if cp is None else f"{cp:.2f}%",
+                "期日前投票相当率": f"{h['early_equiv_rate']:.2f}%",
+                "最終投票率": f"{h['final']:.2f}%",
+                f"{pred['latest']}以降の上積み": "―" if lift is None else f"{lift:.2f}pt",
+            })
+        st.dataframe(pd.DataFrame(rows), hide_index=True, use_container_width=True)
+        st.caption(
+            f"今回の期日前投票相当率＝期日前投票者数{CURRENT_EARLY_VOTERS:,}人 ÷ 当日有権者数{CURRENT_ELECTORATE:,}人 ＝ "
+            f"{CURRENT_EARLY_EQUIV_RATE:.4f}%。加重平均した上積みは{pred['weighted_lift_final']:.4f}ptです。"
+        )
