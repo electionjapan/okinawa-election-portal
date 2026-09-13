@@ -58,7 +58,7 @@ with nav_back:
         st.rerun()
 with nav_label:
     st.markdown('<div class="portal-breadcrumb">沖縄選挙ポータル / 開票速報</div>', unsafe_allow_html=True)
-st.caption("v0.9.26 · LIVE SHEET · NEW MAP")
+st.caption("v0.9.27 · LIVE SHEET · NEW MAP")
 
 st.markdown(
     """
@@ -659,7 +659,13 @@ with st.sidebar:
     prior["label"] = prior.apply(election_label, axis=1)
     compare_options = prior[["label", "election_id"]]
     default_idx = compare_options["election_id"].tolist().index("GOV2022") if "GOV2022" in compare_options["election_id"].tolist() else 0
-    compare_label = st.selectbox("比較する過去の選挙", compare_options["label"].tolist(), index=default_idx)
+    default_compare_label = compare_options["label"].tolist()[default_idx]
+    # 実際の選択ウィジェットは下部の「過去の選挙からどちらへ動いたか」の直前に置く。
+    # ここではまだそのウィジェットが描画されていないので、前回の選択値を
+    # session_stateから読み、無ければ既定値（2022年知事選）を使う。
+    compare_label = st.session_state.get("compare_election_select", default_compare_label)
+    if compare_label not in compare_options["label"].tolist():
+        compare_label = default_compare_label
     compare_id = compare_options.loc[compare_options["label"] == compare_label, "election_id"].iloc[0]
 
     swing_threshold = st.select_slider("シフト表示の最低開票率", options=[25, 50, 75, 90, 95, 100], value=50)
@@ -872,6 +878,13 @@ with st.expander("市町村の詳細を見る", expanded=False):
     )
 
 st.markdown('<div class="section-title">過去の選挙からどちらへ動いたか</div>', unsafe_allow_html=True)
+compare_label = st.selectbox(
+    "比較する過去の選挙",
+    compare_options["label"].tolist(),
+    index=compare_options["label"].tolist().index(compare_label),
+    key="compare_election_select",
+)
+compare_id = compare_options.loc[compare_options["label"] == compare_label, "election_id"].iloc[0]
 if current["current_votes"].sum() > 0:
     past_margin = statewide_margin_final(results, compare_id)
     current_margin = statewide_margin_current(current)
@@ -919,7 +932,7 @@ else:
 
 st.markdown('<div class="sub-rule"></div>', unsafe_allow_html=True)
 st.caption(
-    "v0.9.26｜公式値：投票者数・投票率・候補者得票・開票率・無効票確定・残票。"
+    "v0.9.27｜公式値：投票者数・投票率・候補者得票・開票率・無効票確定・残票。"
     "独自推計：推計無効票・推計有効残票・補正係数。推計値には『推計』『約』を付けています。"
 )
 
