@@ -58,7 +58,7 @@ with nav_back:
         st.rerun()
 with nav_label:
     st.markdown('<div class="portal-breadcrumb">沖縄選挙ポータル / 開票速報</div>', unsafe_allow_html=True)
-st.caption("v0.9.27 · LIVE SHEET · NEW MAP")
+st.caption("v0.9.28 · LIVE SHEET · NEW MAP")
 
 st.markdown(
     """
@@ -484,7 +484,7 @@ def remaining_bubble_panel(geojson, msum, compare_detail, compare_label, height=
             + "<span style='font-size:15px'><b>残票 " + sub["remaining_votes"].map(lambda x: f"{x:,.0f}") + "票</b></span><br>"
             + "<span style='font-size:14px'>開票率 " + sub["reporting_pct"].map(lambda x: f"{x:.1f}%")
             + "　/　開票済み " + sub["reported_votes"].map(lambda x: f"{x:,.0f}") + "票"
-            + "　/　投票者数 " + sub["voters_total"].map(lambda x: "―" if pd.isna(x) else f"{x:,.0f}") + "票</span><br><br>"
+            + "　/　投票者数 " + sub["voters_total"].map(lambda x: "―" if pd.isna(x) else f"{x:,.0f}") + "人</span><br><br>"
             + "<span style='font-size:13px'>今回投票率 " + sub["current_turnout"].map(_fmt_turnout)
             + "　（前回選比 " + sub["turnout_diff_pt"].map(_fmt_diff_pt) + "）</span><br>"
             + "<span style='font-size:13px'>" + compare_label + "："
@@ -854,7 +854,7 @@ with st.expander("市町村の詳細を見る", expanded=False):
     selected = st.selectbox("市町村", options, key="live_muni_detail")
     r = tbl[tbl["municipality_name"] == selected].iloc[0]
     c1, c2, c3, c4 = st.columns(4)
-    c1.metric("投票者数", "―" if pd.isna(r["voters_total"]) else f"{int(r['voters_total']):,}票")
+    c1.metric("投票者数", "―" if pd.isna(r["voters_total"]) else f"{int(r['voters_total']):,}人")
     c2.metric("投票率", "―" if pd.isna(r["turnout_rate"]) else f"{100*float(r['turnout_rate']):.1f}%")
     c3.metric("開票率", "―" if pd.isna(r["開票率"]) else f"{float(r['開票率']):.1f}%")
     c4.metric("残票", "―" if pd.isna(r["残票"]) else f"{int(r['残票']):,}票")
@@ -932,7 +932,7 @@ else:
 
 st.markdown('<div class="sub-rule"></div>', unsafe_allow_html=True)
 st.caption(
-    "v0.9.27｜公式値：投票者数・投票率・候補者得票・開票率・無効票確定・残票。"
+    "v0.9.28｜公式値：投票者数・投票率・候補者得票・開票率・無効票確定・残票。"
     "独自推計：推計無効票・推計有効残票・補正係数。推計値には『推計』『約』を付けています。"
 )
 

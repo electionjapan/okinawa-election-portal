@@ -206,9 +206,17 @@ def build_live_models(book: dict[str, pd.DataFrame], municipalities: pd.DataFram
     # Voting / electorate information.
     voting2 = voting.copy()
     voting2["municipality_name"] = voting2["市町村名"].astype(str).str.strip()
-    voting2["turnout_rate"] = _series_rate(voting2, "投票率")
-    voting2["voting_voters"] = _series_num(voting2, "投票者_計")
+    voting2["voting_voters_dayof"] = _series_num(voting2, "投票者_計")
+    # 「期日前投票者数_9/12最終」のように末尾に日付が付くため、前方一致で探す
+    # （日付が変わっても列名を追いかけられるようにするため）。
+    early_col = next((c for c in voting2.columns if str(c).startswith("期日前投票者数")), None)
+    voting2["early_voters"] = _series_num(voting2, early_col) if early_col else pd.Series([pd.NA] * len(voting2), dtype="Float64")
+    voting2["voting_voters"] = voting2["voting_voters_dayof"].fillna(0) + voting2["early_voters"].fillna(0)
+    voting2.loc[voting2["voting_voters_dayof"].isna() & voting2["early_voters"].isna(), "voting_voters"] = pd.NA
     voting2["electorate"] = _series_num(voting2, "当日有権者_計")
+    # 投票率は「当日分のみ」のシート記載値ではなく、当日＋期日前を合算した実際の投票者数から
+    # 再計算する（シートの「投票率」列は当日票だけを分母に使っているため過小になる）。
+    voting2["turnout_rate"] = (voting2["voting_voters"] / voting2["electorate"].replace(0, pd.NA)).clip(lower=0, upper=1)
     voting2["voting_state"] = _series_text(voting2, "データ状態")
     voting2["voting_round"] = _series_text(voting2, "最新速報回")
 
