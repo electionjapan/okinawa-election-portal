@@ -59,7 +59,7 @@ def _fetch_sheet_gviz(sheet_name: str, timeout: float = 15.0, headers: int | Non
         f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq"
         f"?tqx=out:csv&sheet={quote(sheet_name)}{headers_q}"
     )
-    req = Request(url, headers={"User-Agent": "Mozilla/5.0 OkinawaElectionPortal/0.9.32"})
+    req = Request(url, headers={"User-Agent": "Mozilla/5.0 OkinawaElectionPortal/0.9.33"})
     try:
         with urlopen(req, timeout=timeout) as resp:
             status = resp.status

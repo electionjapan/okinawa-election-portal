@@ -1,7 +1,7 @@
 [
   {
     "path": "README.md",
-    "size_bytes": 24582
+    "size_bytes": 25220
   },
   {
     "path": "app.py",
@@ -93,7 +93,7 @@
   },
   {
     "path": "portal_config.py",
-    "size_bytes": 569
+    "size_bytes": 578
   },
   {
     "path": "requirements.txt",

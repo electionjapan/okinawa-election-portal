@@ -1,5 +1,13 @@
 # 沖縄選挙ポータル v0.9.31 — GitHubアップロード用
 
+## v0.9.33 当日本番シート固定版（2026-09-13）
+
+- 本番GoogleスプレッドシートIDを、ユーザー確認済みの `1s6H3je6DPCSNIzwcOQpA39t_ecISuuAjY4qT2a291is` に固定。
+- Streamlit Secrets / 環境変数による別IDへの上書きを無効化し、「入力しているシートとポータルが別シートを見ている」可能性を排除。
+- `turnout_predict.py` はv0.9.32の頑健な02A解析（複数GViz headers方式＋那覇市アンカー＋41/41自治体採用条件）を維持。
+- 投票率予測ページの診断欄に表示される接続先IDは、上記本番IDと一致すること。
+
+
 このフォルダは Streamlit Community Cloud 用の最小構成です。
 
 ## 更新方法
