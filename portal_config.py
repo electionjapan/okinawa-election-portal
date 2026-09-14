@@ -1,14 +1,19 @@
 from __future__ import annotations
 
-# 2026-09-13 election-day production sheet.
-# The user confirmed this exact Google Spreadsheet URL/ID:
-# https://docs.google.com/spreadsheets/d/1s6H3je6DPCSNIzwcOQpA39t_ecISuuAjY4qT2a291is/edit?usp=sharing
-#
-# IMPORTANT:
-# For the election-day locked build, do NOT let Streamlit Secrets or an
-# environment variable silently redirect the portal to another workbook.
-GOOGLE_SHEET_ID = "1s6H3je6DPCSNIzwcOQpA39t_ecISuuAjY4qT2a291is"
-GOOGLE_SHEET_URL = (
-    "https://docs.google.com/spreadsheets/d/"
-    f"{GOOGLE_SHEET_ID}/edit?usp=sharing"
-)
+import os
+
+DEFAULT_GOOGLE_SHEET_ID = "1s6H3je6DPCSNIzwcOQpA39t_ecISuuAjY4qT2a291is"
+
+def _secret_value():
+    try:
+        import streamlit as st
+        value = st.secrets.get("GOOGLE_SHEET_ID", "")
+        return str(value).strip() if value else ""
+    except Exception:
+        return ""
+
+def get_google_sheet_id() -> str:
+    # Streamlit Secrets > environment variable > packaged fallback.
+    return _secret_value() or os.getenv("GOOGLE_SHEET_ID", "").strip() or DEFAULT_GOOGLE_SHEET_ID
+
+GOOGLE_SHEET_ID = get_google_sheet_id()
