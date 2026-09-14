@@ -1,11 +1,11 @@
 [
   {
     "path": "README.md",
-    "size_bytes": 27161
+    "size_bytes": 28466
   },
   {
     "path": "app.py",
-    "size_bytes": 6475
+    "size_bytes": 7157
   },
   {
     "path": "data/elections.json",
@@ -41,6 +41,14 @@
   },
   {
     "path": "data/municipalities.json",
+    "size_bytes": 11626
+  },
+  {
+    "path": "data/okinawa_municipalities_real_distance_approx_v2.geojson",
+    "size_bytes": 262991
+  },
+  {
+    "path": "data/realmap_municipalities_v1.json",
     "size_bytes": 11626
   },
   {
@@ -94,6 +102,10 @@
   {
     "path": "portal_config.py",
     "size_bytes": 569
+  },
+  {
+    "path": "real_map.py",
+    "size_bytes": 14493
   },
   {
     "path": "requirements.txt",

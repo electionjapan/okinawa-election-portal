@@ -74,6 +74,7 @@ div[data-testid="stAppViewContainer"] { padding-top: 0 !important; }
 .portal-card-history { border-top-color:#1675B9; }
 .portal-card-matrix { border-top-color:#222; }
 .portal-card-shizuoka { border-top-color:#5A7247; }
+.portal-card-realmap { border-top-color:#1E6E5C; }
 .portal-card-title {
     font-family:Georgia,"Yu Mincho",serif;
     font-size:1.65rem;
@@ -162,7 +163,7 @@ div[data-testid="stButton"] > button {
         if st.button("過去の選挙結果を見る", key="home_history", use_container_width=True):
             go("history")
 
-    c4, c5 = st.columns(2, gap="large")
+    c4, c5, c6 = st.columns(3, gap="large")
 
     with c4:
         st.markdown(
@@ -194,8 +195,23 @@ div[data-testid="stButton"] > button {
         if st.button("静岡を見る", key="home_shizuoka", use_container_width=True):
             go("shizuoka")
 
+    with c6:
+        st.markdown(
+            """
+<div class="portal-card portal-card-realmap">
+  <div class="portal-card-title">開票マップ【実寸版】</div>
+  <div class="portal-card-copy">
+    離島を並べ替えず、実際の位置関係・距離感のまま41市町村の開票結果を地図で見る。
+  </div>
+</div>
+""",
+            unsafe_allow_html=True,
+        )
+        if st.button("実寸地図を見る", key="home_realmap", use_container_width=True):
+            go("realmap")
+
     st.markdown(
-        '<div class="portal-foot">Okinawa Election Portal — v0.9.35</div>',
+        '<div class="portal-foot">Okinawa Election Portal — v0.9.36</div>',
         unsafe_allow_html=True,
     )
 
@@ -213,6 +229,8 @@ elif page == "matrix":
     exec(compile((APP_DIR / "matrix_results.py").read_text(encoding="utf-8"), "matrix_results.py", "exec"))
 elif page == "shizuoka":
     exec(compile((APP_DIR / "shizuoka_results.py").read_text(encoding="utf-8"), "shizuoka_results.py", "exec"))
+elif page == "realmap":
+    exec(compile((APP_DIR / "real_map.py").read_text(encoding="utf-8"), "real_map.py", "exec"))
 else:
     st.session_state["portal_page"] = "home"
     st.rerun()
