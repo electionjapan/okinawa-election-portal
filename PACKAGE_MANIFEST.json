@@ -1,110 +1,79 @@
-[
-  {
-    "path": "README.md",
-    "size_bytes": 27161
-  },
-  {
-    "path": "app.py",
-    "size_bytes": 6475
-  },
-  {
-    "path": "data/elections.json",
-    "size_bytes": 1756
-  },
-  {
-    "path": "data/invalid_history_v1.json",
-    "size_bytes": 7288
-  },
-  {
-    "path": "data/map_layout_v0912.geojson",
-    "size_bytes": 254453
-  },
-  {
-    "path": "data/map_layout_v0912.json",
-    "size_bytes": 1908
-  },
-  {
-    "path": "data/matrix_elections_v2.json",
-    "size_bytes": 2166
-  },
-  {
-    "path": "data/matrix_municipalities_v2.json",
-    "size_bytes": 9707
-  },
-  {
-    "path": "data/matrix_prefecture_v2.json",
-    "size_bytes": 9013
-  },
-  {
-    "path": "data/matrix_winners_v2.json",
-    "size_bytes": 174515
-  },
-  {
-    "path": "data/municipalities.json",
-    "size_bytes": 11626
-  },
-  {
-    "path": "data/shizuoka1974_gun_v1.json",
-    "size_bytes": 2721
-  },
-  {
-    "path": "data/shizuoka1974_municipalities_v1.json",
-    "size_bytes": 21254
-  },
-  {
-    "path": "data/shizuoka1974_prefecture_v1.json",
-    "size_bytes": 617
-  },
-  {
-    "path": "data/shizuoka_1975.geojson",
-    "size_bytes": 277471
-  },
-  {
-    "path": "data/shizuoka_1975_gun.geojson",
-    "size_bytes": 152169
-  },
-  {
-    "path": "data/statewide_results.json",
-    "size_bytes": 411424
-  },
-  {
-    "path": "data/turnout.json",
-    "size_bytes": 11655
-  },
-  {
-    "path": "data/turnout_predict_history.json",
-    "size_bytes": 1427
-  },
-  {
-    "path": "historical_results.py",
-    "size_bytes": 30881
-  },
-  {
-    "path": "live_data.py",
-    "size_bytes": 24367
-  },
-  {
-    "path": "live_results.py",
-    "size_bytes": 52083
-  },
-  {
-    "path": "matrix_results.py",
-    "size_bytes": 23341
-  },
-  {
-    "path": "portal_config.py",
-    "size_bytes": 569
-  },
-  {
-    "path": "requirements.txt",
-    "size_bytes": 70
-  },
-  {
-    "path": "shizuoka_results.py",
-    "size_bytes": 21121
-  },
-  {
-    "path": "turnout_predict.py",
-    "size_bytes": 24325
-  }
-]
+{
+  "package": "okinawa-real-map",
+  "version": "v0.9.35-real1",
+  "base_portal": "v0.9.35",
+  "main_file": "app.py",
+  "google_sheet_id": "1s6H3je6DPCSNIzwcOQpA39t_ecISuuAjY4qT2a291is",
+  "files": [
+    {
+      "path": ".gitignore",
+      "size": 53,
+      "sha256": "761ad9f2d721b5f60d88ba1b348fa8c64946dbb6c787607b93a7fcab9ec48fce"
+    },
+    {
+      "path": ".streamlit/config.toml",
+      "size": 69,
+      "sha256": "3846d4462bfbb41c04f2ed97e991e73236f672097c8a1d25cff4f47e3bdf2787"
+    },
+    {
+      "path": "README.md",
+      "size": 2419,
+      "sha256": "43a0a56bfa750230449fcf4379e42e14e60e363fbb0566c905d167e3d057ccea"
+    },
+    {
+      "path": "VALIDATION.txt",
+      "size": 694,
+      "sha256": "1b7035b78920897f5e1ed0f4ff019088513467e9d9aafa09d2af4109ec7f89ae"
+    },
+    {
+      "path": "app.py",
+      "size": 7550,
+      "sha256": "24cb34ff7792e3014e06842dc103c1a5cf657386a6f0e96593f65469b0b14dbf"
+    },
+    {
+      "path": "data/elections.json",
+      "size": 1756,
+      "sha256": "31b5a72fe7de3edade2862bcabab9377e301251c70071207139f88604a0826c2"
+    },
+    {
+      "path": "data/invalid_history_v1.json",
+      "size": 7288,
+      "sha256": "413d11fe464f4132996fe76068537054d5a598400eedd514ba2982473de02dc7"
+    },
+    {
+      "path": "data/municipalities.json",
+      "size": 11626,
+      "sha256": "613a42c4e8260087060e959f37450b5743825d3f3691640725133e4c457b4967"
+    },
+    {
+      "path": "data/okinawa_municipalities_real_distance_approx_v2.geojson",
+      "size": 262991,
+      "sha256": "fe12f74dfe6a10a941ece035dc9d731ffd77ffbf8e70399354759e4f89a11436"
+    },
+    {
+      "path": "data/statewide_results.json",
+      "size": 411424,
+      "sha256": "e41722fe59929247b57d9365ae19ebc0fd0c89376201d815f693b5036ab269b5"
+    },
+    {
+      "path": "data/turnout.json",
+      "size": 11655,
+      "sha256": "37ea0e5ff2456ab7d3d9fa22cf801da77da9096f0341904294fd8b93931f19e7"
+    },
+    {
+      "path": "live_data.py",
+      "size": 24367,
+      "sha256": "c2baa1431d9506f8f6d1ca4f2c51754059448ad934f20550ea5ea5d2ac75b26e"
+    },
+    {
+      "path": "map_view.py",
+      "size": 10586,
+      "sha256": "972d4845c31e22a8b1815dad4cf9fda540650c3e0908fe41d8d75f6c002266f3"
+    },
+    {
+      "path": "requirements.txt",
+      "size": 70,
+      "sha256": "af922ed17ba5ee240696633ec6619fefb6abfcea8a60e1d6081a43c1907899ab"
+    }
+  ]
+}

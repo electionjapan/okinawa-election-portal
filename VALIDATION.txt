@@ -1,0 +1,25 @@
+沖縄県知事選 開票マップ【実寸版】 GitHubパッケージ検証
+
+ベース: 沖縄選挙ポータル v0.9.35
+別サイト構成: YES
+既存v0.9.35の変更: NO
+
+GeoJSON:
+- Feature 41
+- municipality_code 41件一意
+- municipalities.json とコード集合一致
+- 与那国～大東を実位置近似で保持
+- インセット用 map_layout_v0912.json は不使用
+
+実装:
+- 得票シェア: YES
+- 国盗り: YES
+- リード票: YES
+- 残票: YES
+- 市町村名表示トグル: YES
+- クイックズーム: YES
+- 15秒自動更新: YES
+- 最終正常取得データfallback: YES
+- v0.9.35 live_data.pyをそのまま採用: YES
+
+Streamlit Community Cloud Main file path: app.py
