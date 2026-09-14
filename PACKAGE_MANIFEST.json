@@ -1,7 +1,7 @@
 [
   {
     "path": "README.md",
-    "size_bytes": 28466
+    "size_bytes": 29040
   },
   {
     "path": "app.py",
@@ -105,11 +105,11 @@
   },
   {
     "path": "real_map.py",
-    "size_bytes": 14493
+    "size_bytes": 14489
   },
   {
     "path": "requirements.txt",
-    "size_bytes": 70
+    "size_bytes": 73
   },
   {
     "path": "shizuoka_results.py",

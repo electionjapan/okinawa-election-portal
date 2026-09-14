@@ -37,7 +37,7 @@ TIE_GRAY = "#BDBDBD"
 OTHER_GRAY = "#E3E3E3"
 BLUE_BLOC_ATTRS = ["オール沖縄系", "革新系（2014年以前）"]
 
-MAPBOX_STYLE = "open-street-map"  # トークン不要
+MAP_STYLE = "open-street-map"  # MapLibre / トークン不要
 
 QUICK_ZOOM_GROUPS = {
     "全県": None,
@@ -188,7 +188,7 @@ def build_map_figure(geo, msum, current, bounds, height, show_labels):
             fill = lead_fill_color(row.get("leader_attribute", ""), row.get("lead_points", 0), row.get("reported_votes"))
             hover = _hover_text(name, row, current_groups.get(code))
 
-        fig.add_trace(go.Scattermapbox(
+        fig.add_trace(go.Scattermap(
             lon=lons, lat=lats, mode="lines", fill="toself", fillcolor=fill,
             line=dict(color="white", width=1.2),
             text=hover, hovertemplate="%{text}<extra></extra>",
@@ -204,7 +204,7 @@ def build_map_figure(geo, msum, current, bounds, height, show_labels):
                 label_texts.append(name)
 
     if show_labels and label_lons:
-        fig.add_trace(go.Scattermapbox(
+        fig.add_trace(go.Scattermap(
             lon=label_lons, lat=label_lats, mode="text", text=label_texts,
             textfont=dict(size=10, color="#222"), hoverinfo="skip", showlegend=False, name="",
         ))
@@ -218,7 +218,7 @@ def build_map_figure(geo, msum, current, bounds, height, show_labels):
     fig.update_layout(
         height=height,
         margin=dict(l=0, r=0, t=0, b=0),
-        mapbox=dict(style=MAPBOX_STYLE, center=dict(lon=center_lon, lat=center_lat), zoom=zoom),
+        map=dict(style=MAP_STYLE, center=dict(lon=center_lon, lat=center_lat), zoom=zoom),
         uirevision="okinawa-real-map-view",
         showlegend=False,
     )
