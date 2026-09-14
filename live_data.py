@@ -420,9 +420,18 @@ def build_live_models(book: dict[str, pd.DataFrame], municipalities: pd.DataFram
     denom = float(totals["current_votes"].sum())
     totals["pct"] = 100 * totals["current_votes"] / denom if denom > 0 else 0.0
 
-    known = msum[msum["voters_total"].notna() & (msum["voters_total"] > 0)]
+    # 全県開票率は「候補者得票合計÷投票者数」のような集計では算出しない。
+    # 無効票は開票済みの票であり、市町村ごとの開票率(reporting_pct)には
+    # 正しく反映されている。もし counted_ballots が投票者数と一致していなくても
+    # （無効票の反映漏れ等）、全県開票率にその欠落が持ち込まれないよう、
+    # 各市町村の開票率を投票者数で加重平均する方式に統一する。
+    known = msum[
+        msum["voters_total"].notna() & (msum["voters_total"] > 0) & msum["reporting_available"]
+    ]
     if len(known) == len(msum) and len(msum) > 0 and float(known["voters_total"].sum()) > 0:
-        overall_reporting = 100 * float(known["reported_votes"].sum()) / float(known["voters_total"].sum())
+        overall_reporting = float(
+            (known["voters_total"] * known["reporting_pct"]).sum() / known["voters_total"].sum()
+        )
         overall_reporting = max(0.0, min(100.0, overall_reporting))
     else:
         overall_reporting = None

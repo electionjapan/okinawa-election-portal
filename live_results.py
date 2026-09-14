@@ -58,7 +58,7 @@ with nav_back:
         st.rerun()
 with nav_label:
     st.markdown('<div class="portal-breadcrumb">沖縄選挙ポータル / 開票速報</div>', unsafe_allow_html=True)
-st.caption("v0.9.32 · LIVE SHEET · NEW MAP")
+st.caption("v0.9.33 · LIVE SHEET · NEW MAP")
 
 st.markdown(
     """
@@ -932,7 +932,7 @@ else:
 
 st.markdown('<div class="sub-rule"></div>', unsafe_allow_html=True)
 st.caption(
-    "v0.9.32｜公式値：投票者数・投票率・候補者得票・開票率・無効票確定・残票。"
+    "v0.9.33｜公式値：投票者数・投票率・候補者得票・開票率・無効票確定・残票。"
     "独自推計：推計無効票・推計有効残票・補正係数。推計値には『推計』『約』を付けています。"
 )
 
