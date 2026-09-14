@@ -58,7 +58,7 @@ with nav_back:
         st.rerun()
 with nav_label:
     st.markdown('<div class="portal-breadcrumb">沖縄選挙ポータル / 開票速報</div>', unsafe_allow_html=True)
-st.caption("v0.9.34 · LIVE SHEET · NEW MAP")
+st.caption("v0.9.35 · LIVE SHEET · NEW MAP")
 
 st.markdown(
     """
@@ -203,6 +203,18 @@ def lead_fill_color(attribute, lead_points, reported_votes):
     if attribute in BLUE_BLOC_ATTRS:
         return blend(BLUE_LIGHT, BLUE, t)
     return "#E3E3E3"
+
+def winner_take_all_color(attribute, reported_votes):
+    """勝差の大小を反映しない、単純な勝敗2色塗り分け（国盗り地図）用。"""
+    if reported_votes <= 0:
+        return GRAY_LIGHT
+    if attribute == "同数":
+        return "#BDBDBD"
+    if attribute == "保守系":
+        return RED
+    if attribute in BLUE_BLOC_ATTRS:
+        return BLUE
+    return GRAY
 
 def candidate_color(attribute):
     return ATTR_COLOR.get(attribute, "#8C8C8C")
@@ -370,6 +382,63 @@ def winner_map_panel(geojson, msum, current, compare_detail, compare_label, heig
         total = int(grp["current_votes"].sum()) if grp is not None else 0
         xs, ys = _geometry_xy(feature["geometry"])
         fill = lead_fill_color(r["leader_attribute"], r["lead_points"], total)
+
+        prev_winner = r.get("prev_winner_name")
+        prev_pt = r.get("prev_point_diff")
+        if pd.isna(prev_winner) or not prev_winner:
+            prev_line = ""
+        elif prev_winner == "同数":
+            prev_line = "（前回 同数）"
+        elif pd.notna(prev_pt):
+            prev_line = f"（前回 {prev_winner} +{prev_pt:.1f}pt差で勝利）"
+        else:
+            prev_line = f"（前回 {prev_winner} が勝利）"
+
+        lines = []
+        if grp is not None and total > 0:
+            grp_rows = list(grp.iterrows())
+            for i, (_, c) in enumerate(grp_rows):
+                pct = 100 * c["current_votes"] / total
+                lines.append(f"{c['candidate_name']}　{int(c['current_votes']):,}票　{pct:.1f}%")
+                if i == 0 and len(grp_rows) > 1:
+                    top_votes = float(c["current_votes"])
+                    second_votes = float(grp_rows[1][1]["current_votes"])
+                    if top_votes != second_votes:
+                        margin_votes = int(top_votes - second_votes)
+                        margin_pt = 100 * margin_votes / total
+                        lines.append(
+                            f"<span style='color:#8a8a8a;font-size:12px;'>（{margin_pt:.1f}ポイント　{margin_votes:,}票リード）</span>"
+                        )
+        else:
+            lines.append("未開票")
+        hover = (
+            f"<b>{r['municipality_name']}</b>{prev_line}<br>"
+            + "<br>".join(lines)
+            + f"<br><br><b>開票率 {r['reporting_pct']:.1f}%</b>"
+        )
+        fig.add_trace(go.Scatter(
+            x=xs, y=ys, mode="lines", fill="toself", fillcolor=fill,
+            line=dict(color="white", width=1.1),
+            text=hover, hovertemplate="%{text}<extra></extra>",
+            hoveron="fills", showlegend=False, name="",
+        ))
+    return _finish_panel_map(fig, geojson, height=height)
+
+def winner_take_all_panel(geojson, msum, current, compare_detail, compare_label, height=520):
+    """勝った陣営の色（赤／青）だけで塗り分ける、勝差を反映しないシンプルな地図。"""
+    m2 = msum.merge(compare_detail, on="municipality_code", how="left")
+    by_code = {str(r["municipality_code"]): r for _, r in m2.iterrows()}
+    current_groups = {str(code): grp.sort_values("current_votes", ascending=False) for code, grp in current.groupby("municipality_code")}
+    fig = go.Figure()
+    for feature in geojson["features"]:
+        code = str(feature["properties"]["municipality_code"])
+        r = by_code.get(code)
+        if r is None:
+            continue
+        grp = current_groups.get(code)
+        total = int(grp["current_votes"].sum()) if grp is not None else 0
+        xs, ys = _geometry_xy(feature["geometry"])
+        fill = winner_take_all_color(r["leader_attribute"], total)
 
         prev_winner = r.get("prev_winner_name")
         prev_pt = r.get("prev_point_diff")
@@ -784,12 +853,15 @@ with left:
 
 with right:
     st.markdown('<div class="eyebrow">市町村別マップ</div>', unsafe_allow_html=True)
-    map_mode = st.radio("表示切替", ["得票シェア", "リード票", "残票"], horizontal=True, label_visibility="collapsed")
+    map_mode = st.radio("表示切替", ["得票シェア", "国盗り", "リード票", "残票"], horizontal=True, label_visibility="collapsed")
     lead_max = float(msum["lead_votes"].max()) if len(msum) else 1
     remain_max = float(pd.to_numeric(msum["remaining_votes"], errors="coerce").max()) if pd.to_numeric(msum["remaining_votes"], errors="coerce").notna().any() else 1
     if map_mode == "得票シェア":
         render_boxed_map(winner_map_panel, geojson, layout_boxes, 610, "winner", msum, current, compare_detail, compare_label)
         st.markdown('<div class="map-caption">濃い赤・濃い青ほどリード幅が大きく、淡い色ほど接戦。未開票はグレーです。</div>', unsafe_allow_html=True)
+    elif map_mode == "国盗り":
+        render_boxed_map(winner_take_all_panel, geojson, layout_boxes, 610, "wta", msum, current, compare_detail, compare_label)
+        st.markdown('<div class="map-caption">勝差の大小に関わらず、勝った陣営の色（保守＝赤／オール沖縄＝青）で単純に塗り分けます。未開票はグレーです。</div>', unsafe_allow_html=True)
     elif map_mode == "リード票":
         render_boxed_map(lead_bubble_panel, geojson, layout_boxes, 520, "lead", msum, max_value=lead_max)
         st.markdown('<div class="map-caption">円の大きさ＝現時点の1位と2位の票差。</div>', unsafe_allow_html=True)
@@ -932,7 +1004,7 @@ else:
 
 st.markdown('<div class="sub-rule"></div>', unsafe_allow_html=True)
 st.caption(
-    "v0.9.34｜公式値：投票者数・投票率・候補者得票・開票率・無効票確定・残票。"
+    "v0.9.35｜公式値：投票者数・投票率・候補者得票・開票率・無効票確定・残票。"
     "独自推計：推計無効票・推計有効残票・補正係数。推計値には『推計』『約』を付けています。"
 )
 
