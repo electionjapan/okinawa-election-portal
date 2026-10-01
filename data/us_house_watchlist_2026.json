@@ -1,0 +1,23 @@
+{
+  "_note": "2026年米国下院選挙(2026-11-03)の『注目レース一覧』向け初期ウォッチリスト。435選挙区すべてを網羅するものではなく、過去の選挙サイクルで接戦が続いてきた代表的な選挙区を州をまたいで一部ピックアップした初期セットです。このJSONを編集すれば表示対象を自由に追加・削除できます。『当選確実』『優勢』等の予測ラベルは付与していません。",
+  "districts": [
+    {"state": "Pennsylvania", "code": "PA", "district": "PA-08"},
+    {"state": "Pennsylvania", "code": "PA", "district": "PA-10"},
+    {"state": "Michigan", "code": "MI", "district": "MI-07"},
+    {"state": "Michigan", "code": "MI", "district": "MI-08"},
+    {"state": "North Carolina", "code": "NC", "district": "NC-01"},
+    {"state": "Nevada", "code": "NV", "district": "NV-03"},
+    {"state": "Arizona", "code": "AZ", "district": "AZ-06"},
+    {"state": "California", "code": "CA", "district": "CA-13"},
+    {"state": "California", "code": "CA", "district": "CA-22"},
+    {"state": "New York", "code": "NY", "district": "NY-04"},
+    {"state": "New York", "code": "NY", "district": "NY-17"},
+    {"state": "Colorado", "code": "CO", "district": "CO-08"},
+    {"state": "Maine", "code": "ME", "district": "ME-02"},
+    {"state": "Virginia", "code": "VA", "district": "VA-02"},
+    {"state": "Ohio", "code": "OH", "district": "OH-09"},
+    {"state": "Wisconsin", "code": "WI", "district": "WI-03"},
+    {"state": "Iowa", "code": "IA", "district": "IA-01"},
+    {"state": "Iowa", "code": "IA", "district": "IA-03"}
+  ]
+}

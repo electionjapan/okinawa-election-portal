@@ -1,490 +1,345 @@
+"""
+2026年米国中間選挙(2026-11-03) ポータル（沖縄選挙ポータル内の新ページ）
+
+データソースは civicAPI (https://civicapi.org) の無料・認証不要API。
+公式選管・AP通信等の公式コール(当確)ではない非公式のサードパーティAPIであるため、
+全ページで「参考情報」であることを明示する。
+
+構成:
+  1. 開票速報  … 上院・知事選の州別現在値を一覧表示
+  2. 全米マップ … 上院 / 知事選を選んで、リード政党で塗り分けた全米地図
+  3. 注目レース一覧 … 下院の代表的な接戦区ウォッチリスト(編集可能な初期セット)
+"""
+
 from __future__ import annotations
 
-from datetime import datetime
-from html import escape
+from pathlib import Path
 
 import pandas as pd
-import plotly.express as px
+import plotly.graph_objects as go
 import streamlit as st
 
-import civic_api as ca
+import us_midterm_data as umd
 
 try:
     from streamlit_autorefresh import st_autorefresh
 except Exception:
     st_autorefresh = None
 
-ELECTION_DATE = "2026-11-03"
-VERSION = "0.10.1"
+APP_DIR = Path(__file__).resolve().parent
 
-STATE_NAMES = {
-    "AL":"Alabama","AK":"Alaska","AZ":"Arizona","AR":"Arkansas","CA":"California","CO":"Colorado","CT":"Connecticut","DE":"Delaware","FL":"Florida","GA":"Georgia","HI":"Hawaii","ID":"Idaho","IL":"Illinois","IN":"Indiana","IA":"Iowa","KS":"Kansas","KY":"Kentucky","LA":"Louisiana","ME":"Maine","MD":"Maryland","MA":"Massachusetts","MI":"Michigan","MN":"Minnesota","MS":"Mississippi","MO":"Missouri","MT":"Montana","NE":"Nebraska","NV":"Nevada","NH":"New Hampshire","NJ":"New Jersey","NM":"New Mexico","NY":"New York","NC":"North Carolina","ND":"North Dakota","OH":"Ohio","OK":"Oklahoma","OR":"Oregon","PA":"Pennsylvania","RI":"Rhode Island","SC":"South Carolina","SD":"South Dakota","TN":"Tennessee","TX":"Texas","UT":"Utah","VT":"Vermont","VA":"Virginia","WA":"Washington","WV":"West Virginia","WI":"Wisconsin","WY":"Wyoming","DC":"District of Columbia"
-}
+DEM_COLOR = "#1675B9"
+REP_COLOR = "#C93238"
+OTHER_COLOR = "#8E8E8E"
+NODATA_COLOR = "#E7E7E7"
 
-# 119th Congress baseline, checked against senate.gov in 2026.
-# Democratic caucus = 45 Democrats + 2 Independents who caucus with Democrats.
-SENATE_CURRENT_DEM_CAUCUS = 47
-SENATE_CURRENT_REP = 53
-# 2026 ballot: 33 regular Class II seats + the OH/FL special elections.
-SENATE_2026_DEM_CAUCUS_SEATS = 13
-SENATE_2026_REP_SEATS = 22
-SENATE_HOLDOVER_DEM_CAUCUS = SENATE_CURRENT_DEM_CAUCUS - SENATE_2026_DEM_CAUCUS_SEATS  # 34
-SENATE_HOLDOVER_REP = SENATE_CURRENT_REP - SENATE_2026_REP_SEATS  # 31
-SENATE_SEATS_ON_BALLOT = 35
 
-DEFAULT_WATCH_STATES = ["NC", "TX", "ME", "OH", "AK"]
+def party_color(party: str | None) -> str:
+    if not party:
+        return OTHER_COLOR
+    p = party.strip().lower()
+    if p.startswith("dem"):
+        return DEM_COLOR
+    if p.startswith("rep") or p.startswith("gop"):
+        return REP_COLOR
+    return OTHER_COLOR
 
-st.markdown("""
+
+def party_label_ja(party: str | None) -> str:
+    if not party:
+        return "不明"
+    p = party.strip().lower()
+    if p.startswith("dem"):
+        return "民主党"
+    if p.startswith("rep") or p.startswith("gop"):
+        return "共和党"
+    return party
+
+
+st.markdown(
+    """
 <style>
-.us-wrap {font-family:"Meiryo","Yu Gothic",system-ui,sans-serif;}
-.us-kicker {font-size:.77rem;font-weight:800;letter-spacing:.11em;color:#667085;margin-bottom:.35rem;}
-.us-title {font-family:Georgia,"Yu Mincho",serif;font-size:2.6rem;font-weight:800;line-height:1.05;margin-bottom:.35rem;}
-.us-deck {color:#667085;margin-bottom:1.25rem;line-height:1.7;}
-.us-card {border:1px solid #D7DBE0;border-top:4px solid #1F4E79;background:white;padding:1rem 1.1rem;border-radius:2px;min-height:112px;}
-.us-card.red {border-top-color:#B42318}.us-card.blue {border-top-color:#175CD3}.us-card.gold {border-top-color:#B54708}
-.us-label {font-size:.74rem;font-weight:800;color:#667085;letter-spacing:.08em;text-transform:uppercase;}
-.us-value {font-size:1.65rem;font-weight:800;margin-top:.18rem;}
-.us-sub {font-size:.83rem;color:#667085;margin-top:.3rem;}
-.race-box {border:1px solid #D7DBE0;padding:1rem 1.1rem;margin:.45rem 0;background:#fff;}
-.race-name {font-weight:800;font-size:1.02rem}.race-meta {color:#667085;font-size:.82rem;margin-top:.18rem}
-.candidate-row {display:flex;gap:1rem;align-items:baseline;border-bottom:1px solid #EEE;padding:.55rem 0;}
-.candidate-row:last-child {border-bottom:none}.candidate-name {font-weight:800;min-width:280px}.candidate-vote {font-variant-numeric:tabular-nums;font-weight:700}.candidate-pct {font-variant-numeric:tabular-nums;color:#475467;}
-.call-pill {font-size:.72rem;background:#111;color:white;border-radius:999px;padding:.15rem .45rem;margin-left:.4rem;font-weight:800;}
-.small-note {font-size:.82rem;color:#667085;line-height:1.6;}
-.seat-board {border:1px solid #D7DBE0;background:#fff;padding:1rem 1.15rem 1.1rem;margin:.35rem 0 1.1rem;}
-.seat-head {display:flex;justify-content:space-between;gap:1rem;align-items:flex-end;margin-bottom:.65rem;}
-.seat-title {font-size:1rem;font-weight:900;letter-spacing:.04em;}
-.seat-meta {font-size:.78rem;color:#667085;text-align:right;}
-.seat-meter {position:relative;height:36px;display:flex;border:1px solid #BFC5CC;overflow:visible;background:#EAECF0;}
-.seat-dem {background:#2F6BFF;height:100%;}.seat-und {background:#EAECF0;height:100%;}.seat-oth {background:#7F56D9;height:100%;}.seat-rep {background:#D64545;height:100%;}
-.seat-50 {position:absolute;left:50%;top:-7px;bottom:-7px;border-left:2px solid #111;z-index:4;}
-.seat-50-label {position:absolute;left:50%;transform:translateX(-50%);top:-25px;background:#111;color:#fff;padding:1px 5px;font-size:.69rem;font-weight:800;}
-.seat-labels {display:grid;grid-template-columns:1fr 1fr 1fr;margin-top:.55rem;font-size:.82rem;font-weight:800;}
-.seat-labels .center{text-align:center;color:#667085}.seat-labels .right{text-align:right}
-.watch-note {font-size:.78rem;color:#667085;margin-top:.2rem;margin-bottom:.8rem;}
-.quick-state {font-size:.75rem;color:#667085;}
+html, body, [class*="css"] { font-family:"Meiryo","Yu Gothic",system-ui,sans-serif; color:#292929; }
+.block-container { max-width:1200px; padding-top:.6rem; padding-bottom:4rem; }
+.portal-nav-spacer { height:.15rem; }
+.portal-breadcrumb { color:#777; font-size:.82rem; padding-top:.68rem; white-space:nowrap; }
+#MainMenu, footer, header[data-testid="stHeader"] { display:none !important; }
+div[data-testid="stAppViewContainer"] { padding-top:0 !important; }
+div[data-testid="stHorizontalBlock"]:has(div[data-testid="stButton"]) {
+  position:sticky; top:0; z-index:999; background:#fff; padding-bottom:.3rem;
+}
+@media(max-width:800px){
+  .block-container{padding-left:.7rem;padding-right:.7rem;padding-top:.6rem !important;}
+}
+.um-badge {
+    display:inline-block;
+    font-size:.72rem;
+    font-weight:800;
+    letter-spacing:.06em;
+    padding:.15rem .5rem;
+    border-radius:3px;
+    color:#fff;
+}
+.um-card {
+    border:1px solid #DDD;
+    border-left:5px solid #AAA;
+    padding:.75rem .9rem;
+    margin-bottom:.55rem;
+    background:#fff;
+}
+.um-card-title { font-weight:800; font-size:1.02rem; margin-bottom:.25rem; }
+.um-card-row { display:flex; justify-content:space-between; font-size:.9rem; padding:.1rem 0; }
+.um-disclaimer {
+    background:#FFF7E6;
+    border:1px solid #F0D79A;
+    padding:.6rem .85rem;
+    font-size:.82rem;
+    color:#6B5312;
+    line-height:1.6;
+    margin-bottom:1rem;
+}
 </style>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
 
+nav_back, nav_label = st.columns([1.7, 6.3], gap="small")
+with nav_back:
+    if st.button("← トップへ戻る", key="portal_back_usmidterm", use_container_width=True):
+        st.session_state["portal_page"] = "home"
+        st.rerun()
+with nav_label:
+    st.markdown('<div class="portal-breadcrumb">沖縄選挙ポータル ／ 2026年米国中間選挙</div>', unsafe_allow_html=True)
+st.markdown('<div class="portal-nav-spacer"></div>', unsafe_allow_html=True)
 
-def set_state_filter(code: str):
-    st.session_state["us_state_filter"] = code
+st.markdown("## 2026年米国中間選挙(2026年11月3日)")
+st.markdown(
+    '<div class="um-disclaimer">'
+    "データは非公式・無料のサードパーティAPI「civicAPI」から取得しています。"
+    "州選管や連邦議会、AP通信などによる公式の確定結果・当確(コール)ではないため、"
+    "参考情報としてご利用ください。開票率0%の州は投票開始前のプレースホルダーです。"
+    "</div>",
+    unsafe_allow_html=True,
+)
 
-
-if st.button("← ポータルTOP", key="us_back_top"):
-    st.session_state["portal_page"] = "home"
-    st.rerun()
-
-st.markdown('<div class="us-kicker">UNITED STATES · 2026 MIDTERM ELECTIONS</div>', unsafe_allow_html=True)
-st.markdown('<div class="us-title">アメリカ中間選挙 開票デスク</div>', unsafe_allow_html=True)
-st.markdown('<div class="us-deck">civicAPIから2026年11月3日のレースを取得し、上院・下院・知事選を監視します。上院は100議席全体の勢力ボード、注目州は専用WATCH DESKで確認できます。データ提供：civicAPI。</div>', unsafe_allow_html=True)
-
-if "us_state_filter" not in st.session_state:
-    st.session_state["us_state_filter"] = "ALL"
-
-ctrl1, ctrl2, ctrl3, ctrl4 = st.columns([1.2,1.25,1.2,2.25])
-with ctrl1:
-    auto_refresh = st.toggle("10秒自動更新", value=False, help="選挙当日はON推奨。")
-with ctrl2:
-    include_test = st.toggle("選択レースをテスト表示", value=False, help="civicAPIのtestdataオプションを使い、開票前でもレース詳細を確認しやすくします。")
-with ctrl3:
-    if st.button("今すぐ再取得", use_container_width=True):
+with st.sidebar:
+    st.markdown("### 2026年米国中間選挙")
+    if st.button("↻ 最新の状態を再取得", key="refresh_usmidterm", use_container_width=True):
         st.cache_data.clear()
         st.rerun()
-with ctrl4:
-    state_filter = st.selectbox(
-        "州で絞り込み",
-        ["ALL"] + sorted(STATE_NAMES),
-        format_func=lambda x: "全米" if x == "ALL" else f"{x} · {STATE_NAMES.get(x,x)}",
-        key="us_state_filter",
+    autorefresh_on = st.checkbox(
+        "自動更新を有効にする（選挙当日向け）",
+        value=False,
+        help="オンにすると30秒ごとにcivicAPIへ再アクセスします。選挙期間外は手動更新を推奨します。",
     )
+    st.caption("civicAPI（非公式）を利用しています。公式の確定結果ではありません。")
 
-if auto_refresh and st_autorefresh is not None:
-    st_autorefresh(interval=10_000, limit=None, key="us-midterms-autorefresh")
-
-
-@st.cache_data(ttl=8, show_spinner=False)
-def api_status():
-    return ca.get_status()
+if autorefresh_on and st_autorefresh is not None:
+    st_autorefresh(interval=30 * 1000, limit=None, key="usmidterm-autorefresh")
 
 
-@st.cache_data(ttl=10, show_spinner=False)
-def load_races():
-    merged = []
-    seen = set()
-    for election_type in ("senate", "house", "governor"):
-        raw = ca.search_races(
-            country="US", election_type=election_type,
-            start_date=ELECTION_DATE, end_date=ELECTION_DATE, limit=2000
-        )
-        for race in ca.extract_race_list(raw):
-            key = ca.race_id(race) or (ca.race_name(race), ca.province_code(race), ca.election_type(race))
-            if key not in seen:
-                seen.add(key)
-                merged.append(race)
-    # Also perform one broad date search. This protects against provider-side
-    # election_type naming differences and fills any category the filtered calls miss.
-    raw = ca.search_races(country="US", start_date=ELECTION_DATE, end_date=ELECTION_DATE, limit=5000)
-    for race in ca.extract_race_list(raw):
-        key = ca.race_id(race) or (ca.race_name(race), ca.province_code(race), ca.election_type(race))
-        if key not in seen:
-            seen.add(key)
-            merged.append(race)
-    return merged
+@st.cache_data(ttl=300, show_spinner=False)
+def _load_states_config():
+    return umd.load_states_config()
 
 
-@st.cache_data(ttl=8, show_spinner=False)
-def load_race_detail(rid: str, testdata: bool):
-    return ca.extract_race_detail(ca.get_race(rid, precinct=False, testdata=testdata))
+@st.cache_data(ttl=300, show_spinner=False)
+def _load_house_watchlist():
+    return umd.load_house_watchlist()
 
 
-@st.cache_data(ttl=60, show_spinner=False)
-def load_map_svg(rid: str, testdata: bool):
-    return ca.get_race_map_svg(rid, testdata=testdata)
+@st.cache_data(ttl=300, show_spinner=False)
+def _load_senate(states_key: str):
+    states = _load_states_config()
+    return umd.get_senate_races(states)
 
 
-status_error = None
+@st.cache_data(ttl=300, show_spinner=False)
+def _load_governor(states_key: str):
+    states = _load_states_config()
+    return umd.get_governor_races(states)
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def _load_house_watchlist_races(watchlist_key: str):
+    watchlist = _load_house_watchlist()
+    return umd.get_house_watchlist_races(watchlist)
+
+
+fetch_errors: list[str] = []
+
 try:
-    status = api_status()
-except Exception as exc:
-    status = {}
-    status_error = str(exc)
+    senate_races, senate_errors = _load_senate("v1")
+    st.session_state["usmidterm_senate_cache"] = senate_races
+except Exception as exc:  # noqa: BLE001
+    senate_races = st.session_state.get("usmidterm_senate_cache", {})
+    fetch_errors.append(f"上院データ取得エラー: {exc}")
+    senate_errors = []
 
-fetch_error = None
 try:
-    races = load_races()
-except Exception as exc:
-    races = []
-    fetch_error = str(exc)
+    governor_races, governor_errors = _load_governor("v1")
+    st.session_state["usmidterm_governor_cache"] = governor_races
+except Exception as exc:  # noqa: BLE001
+    governor_races = st.session_state.get("usmidterm_governor_cache", {})
+    fetch_errors.append(f"知事選データ取得エラー: {exc}")
+    governor_errors = []
+
+try:
+    house_races, house_errors = _load_house_watchlist_races("v1")
+    st.session_state["usmidterm_house_cache"] = house_races
+except Exception as exc:  # noqa: BLE001
+    house_races = st.session_state.get("usmidterm_house_cache", {})
+    fetch_errors.append(f"下院データ取得エラー: {exc}")
+    house_errors = []
+
+if not senate_races and not governor_races and not house_races:
+    st.error("civicAPIからデータを取得できませんでした。しばらくしてから「↻ 最新の状態を再取得」をお試しください。")
+    for e in fetch_errors:
+        st.caption(e)
+    st.stop()
+
+if fetch_errors or senate_errors or governor_errors or house_errors:
+    with st.expander("一部のデータ取得に失敗しています（クリックで詳細）", expanded=False):
+        for e in fetch_errors + senate_errors + governor_errors + house_errors:
+            st.caption(e)
+
+tab_live, tab_map, tab_watch = st.tabs(["開票速報", "全米マップ", "注目レース一覧"])
 
 
-def margin_info(race: dict):
-    """Return absolute top-two gap using available vote totals and percentages."""
-    cs = ca.candidates(race)
-    if len(cs) < 2:
-        return None, None
-    with_votes = [c for c in cs if ca.candidate_votes(c) is not None]
-    vote_gap = None
-    if len(with_votes) >= 2:
-        top = sorted(with_votes, key=lambda c: ca.candidate_votes(c) or 0, reverse=True)[:2]
-        vote_gap = abs((ca.candidate_votes(top[0]) or 0) - (ca.candidate_votes(top[1]) or 0))
-    with_pct = [c for c in cs if ca.candidate_percent(c) is not None]
-    pct_gap = None
-    if len(with_pct) >= 2:
-        top = sorted(with_pct, key=lambda c: ca.candidate_percent(c) or 0, reverse=True)[:2]
-        pct_gap = abs((ca.candidate_percent(top[0]) or 0.0) - (ca.candidate_percent(top[1]) or 0.0))
-    return vote_gap, pct_gap
-
-
-# Normalize race metadata once. Keep an unfiltered copy for the national board and WATCH DESK.
-all_rows = []
-for r in races:
-    rid = ca.race_id(r)
-    typ = ca.election_type(r)
-    state = ca.province_code(r)
-    name = ca.race_name(r) or f"Race {rid}"
-    rep = ca.reporting_pct(r)
-    lead = ca.leader(r)
-    vote_gap, pct_gap = margin_info(r)
-    all_rows.append({
-        "race": r, "race_id": rid, "type": typ, "state": state, "name": name,
-        "reporting": rep,
-        "leader_name": ca.candidate_name(lead) if lead else "",
-        "leader_party": ca.candidate_party(lead) if lead else "",
-        "called": ca.candidate_called(lead) if lead else False,
-        "vote_gap": vote_gap,
-        "pct_gap": pct_gap,
-    })
-
-rows = all_rows if state_filter == "ALL" else [x for x in all_rows if x["state"] == state_filter]
-senate_all = [x for x in all_rows if x["type"] == "Senate"]
-house_all = [x for x in all_rows if x["type"] == "House"]
-gov_all = [x for x in all_rows if x["type"] == "Governor"]
-senate = [x for x in rows if x["type"] == "Senate"]
-house = [x for x in rows if x["type"] == "House"]
-gov = [x for x in rows if x["type"] == "Governor"]
-other = [x for x in rows if x["type"] not in {"Senate", "House", "Governor"}]
-
-status_text = str(status.get("status", "unknown")) if status else "unavailable"
-mc1, mc2, mc3, mc4 = st.columns(4)
-with mc1:
-    st.markdown(f'<div class="us-card blue"><div class="us-label">API STATUS</div><div class="us-value">{escape(status_text.upper())}</div><div class="us-sub">{escape(status_error or "civicAPI v2")}</div></div>', unsafe_allow_html=True)
-with mc2:
-    st.markdown(f'<div class="us-card"><div class="us-label">SENATE</div><div class="us-value">{len(senate_all)}</div><div class="us-sub">全米の取得レース数</div></div>', unsafe_allow_html=True)
-with mc3:
-    st.markdown(f'<div class="us-card red"><div class="us-label">HOUSE</div><div class="us-value">{len(house_all)}</div><div class="us-sub">全米の取得レース数</div></div>', unsafe_allow_html=True)
-with mc4:
-    st.markdown(f'<div class="us-card gold"><div class="us-label">GOVERNOR</div><div class="us-value">{len(gov_all)}</div><div class="us-sub">全米の取得レース数</div></div>', unsafe_allow_html=True)
-
-if fetch_error:
-    st.error("civicAPIから2026年11月3日のレース一覧を取得できませんでした。ネット接続・API状態を確認してください。\n\n" + fetch_error)
-    st.info("画面実装自体は入っています。APIが応答すれば一覧・勢力ボード・WATCH DESK・レース詳細が動きます。")
-else:
-    filter_txt = "全米" if state_filter == "ALL" else state_filter
-    st.caption(f"取得 {len(all_rows):,}レース · 表示範囲 {filter_txt} · Election date: {ELECTION_DATE} · 最終画面更新 {datetime.now().strftime('%H:%M:%S')}")
-
-
-# ---- Senate control board -------------------------------------------------
-called_dem = sum(1 for x in senate_all if x["called"] and ca.party_bucket(x["leader_party"]) == "DEM")
-called_rep = sum(1 for x in senate_all if x["called"] and ca.party_bucket(x["leader_party"]) == "REP")
-called_oth = sum(1 for x in senate_all if x["called"] and ca.party_bucket(x["leader_party"]) == "OTH")
-seat_dem = SENATE_HOLDOVER_DEM_CAUCUS + called_dem
-seat_rep = SENATE_HOLDOVER_REP + called_rep
-seat_oth = called_oth
-seat_und = max(0, 100 - seat_dem - seat_rep - seat_oth)
-
-st.markdown("### SENATE CONTROL")
-seat_html = f'''
-<div class="seat-board">
-  <div class="seat-head">
-    <div class="seat-title">100 SEATS · 50 LINE</div>
-    <div class="seat-meta">非改選ベース: 民主党会派 {SENATE_HOLDOVER_DEM_CAUCUS} / 共和党 {SENATE_HOLDOVER_REP}<br>2026改選・特別選挙: {SENATE_SEATS_ON_BALLOT}議席</div>
-  </div>
-  <div class="seat-meter">
-    <div class="seat-dem" style="width:{seat_dem}%"></div>
-    <div class="seat-oth" style="width:{seat_oth}%"></div>
-    <div class="seat-und" style="width:{seat_und}%"></div>
-    <div class="seat-rep" style="width:{seat_rep}%"></div>
-    <div class="seat-50"></div><div class="seat-50-label">50</div>
-  </div>
-  <div class="seat-labels">
-    <div>民主党会派 {seat_dem}</div>
-    <div class="center">未確定 {seat_und} / その他 {seat_oth} · 単独過半数 51</div>
-    <div class="right">共和党 {seat_rep}</div>
-  </div>
-</div>
-'''
-st.markdown(seat_html, unsafe_allow_html=True)
-st.caption("民主党会派の非改選ベースには、民主党と会派を組む無所属を含みます。APIで当確が確認できたレースだけを積み上げ、未当確は中央の未確定に残します。50対50の場合の多数派は副大統領の党派等で決まります。")
-
-# One-click state filters. These are editable monitoring shortcuts, not forecasts.
-st.markdown('<div class="quick-state">QUICK STATE FILTER</div>', unsafe_allow_html=True)
-quick_cols = st.columns(len(DEFAULT_WATCH_STATES) + 1)
-quick_cols[0].button("ALL", key="quick_all", use_container_width=True, on_click=set_state_filter, args=("ALL",))
-for col, code in zip(quick_cols[1:], DEFAULT_WATCH_STATES):
-    col.button(code, key=f"quick_{code}", use_container_width=True, on_click=set_state_filter, args=(code,))
-
-# Statewide map. No external GeoJSON is required.
-statewide = [x for x in senate + gov if x["state"] in STATE_NAMES]
-map_rows = []
-priority = {"Senate": 2, "Governor": 1}
-by_state = {}
-for x in statewide:
-    if x["state"] not in by_state or priority.get(x["type"], 0) > priority.get(by_state[x["state"]]["type"], 0):
-        by_state[x["state"]] = x
-for state, x in by_state.items():
-    bucket = ca.party_bucket(x["leader_party"])
-    map_rows.append({"state": state, "status": bucket if x["leader_name"] else "NO DATA", "race": x["name"], "leader": x["leader_name"] or "未集計"})
-
-if map_rows:
-    map_df = pd.DataFrame(map_rows)
-    fig = px.choropleth(
-        map_df,
-        locations="state",
-        locationmode="USA-states",
-        scope="usa",
-        color="status",
-        hover_name="race",
-        hover_data={"state": True, "leader": True, "status": True},
-        color_discrete_map={"DEM":"#2F6BFF", "REP":"#D64545", "OTH":"#8B6FC0", "NO DATA":"#D0D5DD"},
-    )
-    fig.update_layout(margin=dict(l=0, r=0, t=20, b=0), height=420, legend_title_text="Leader")
-    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
-else:
-    st.info("州単位の上院・知事選データを取得すると、ここに全米マップが表示されます。外部GeoJSONは不要です。")
-
-
-def race_table(items: list[dict], limit: int | None = None):
-    data = []
-    src = items[:limit] if limit else items
-    for x in src:
-        data.append({
-            "州": x["state"],
-            "種別": x["type"],
-            "レース": x["name"],
-            "開票率": None if x["reporting"] is None else round(x["reporting"], 1),
-            "リード/当確": x["leader_name"],
-            "党派": x["leader_party"],
-            "票差": x["vote_gap"],
-            "pt差": None if x["pct_gap"] is None else round(x["pct_gap"], 2),
-            "当確": "✓" if x["called"] else "",
-            "race_id": x["race_id"],
+def _race_rows(races: dict) -> pd.DataFrame:
+    rows = []
+    for code, race in races.items():
+        candidates = sorted(race.get("candidates") or [], key=lambda c: c.get("votes") or 0, reverse=True)
+        lead = candidates[0] if candidates else None
+        runner = candidates[1] if len(candidates) > 1 else None
+        rows.append({
+            "州": code,
+            "開票率": race.get("percent_reporting") or 0,
+            "首位候補": lead.get("name") if lead else "—",
+            "首位政党": party_label_ja(lead.get("party")) if lead else "—",
+            "首位得票率": lead.get("percent") if lead else None,
+            "次点候補": runner.get("name") if runner else "—",
+            "次点得票率": runner.get("percent") if runner else None,
         })
-    return pd.DataFrame(data)
+    df = pd.DataFrame(rows)
+    if not df.empty:
+        df = df.sort_values("州").reset_index(drop=True)
+    return df
 
 
-def watch_sort_key(x: dict):
-    # Uncalled races first, then the smallest known percentage gap, then higher reporting.
-    pct = x["pct_gap"] if x["pct_gap"] is not None else 9999.0
-    vote = x["vote_gap"] if x["vote_gap"] is not None else 10**18
-    reporting = x["reporting"] if x["reporting"] is not None else -1.0
-    return (1 if x["called"] else 0, pct, vote, -reporting, x["state"], x["name"])
-
-
-def state_sort_key(x: dict):
-    return (x["state"], x["type"], x["name"])
-
-
-def reporting_sort_key(x: dict):
-    reporting = x["reporting"] if x["reporting"] is not None else -1.0
-    return (-reporting, x["state"], x["name"])
-
-
-tab_over, tab_watch, tab_sen, tab_house, tab_gov, tab_detail = st.tabs(["OVERVIEW", "WATCH DESK", "SENATE", "HOUSE", "GOVERNOR", "RACE DETAIL"])
-
-with tab_over:
-    st.subheader("CALL MONITOR")
-    called_rows = [x for x in all_rows if x["called"]]
-    if called_rows:
-        called_rows = sorted(called_rows, key=lambda x: (x["type"], x["state"], x["name"]))
-        st.dataframe(race_table(called_rows, limit=120), use_container_width=True, hide_index=True, height=360)
+with tab_live:
+    st.markdown("### 上院(Senate)")
+    if senate_races:
+        df_sen = _race_rows(senate_races)
+        st.dataframe(df_sen, use_container_width=True, hide_index=True)
     else:
-        st.info("当確（CALL）が入ると、ここに一覧表示します。")
+        st.info("上院の州別データをまだ取得できていません。")
 
-    st.subheader("全レース一覧")
-    combined = senate + gov + house
-    if combined:
-        st.dataframe(race_table(combined, limit=120), use_container_width=True, hide_index=True, height=500)
-    elif not fetch_error:
-        st.warning("該当レースがまだAPIに登録されていないか、検索条件とAPI側の分類が一致していません。")
-    if other:
-        with st.expander(f"その他のレース {len(other)}件"):
-            st.dataframe(race_table(other, limit=100), use_container_width=True, hide_index=True)
+    st.markdown("### 知事選(Governor)")
+    if governor_races:
+        df_gov = _race_rows(governor_races)
+        st.dataframe(df_gov, use_container_width=True, hide_index=True)
+    else:
+        st.info("知事選の州別データをまだ取得できていません。")
+
+
+def _build_choropleth(races: dict, title: str):
+    locations, z, hover = [], [], []
+    for code, race in races.items():
+        lead_party = umd.leading_party(race)
+        candidates = sorted(race.get("candidates") or [], key=lambda c: c.get("votes") or 0, reverse=True)
+        lead = candidates[0] if candidates else None
+        if lead_party and lead_party.strip().lower().startswith("dem"):
+            val = -1
+        elif lead_party and (lead_party.strip().lower().startswith("rep") or lead_party.strip().lower().startswith("gop")):
+            val = 1
+        else:
+            val = 0
+        locations.append(code)
+        z.append(val)
+        pct = race.get("percent_reporting") or 0
+        if lead is None:
+            hover.append(f"{code}<br>データなし")
+        else:
+            hover.append(
+                f"{code}<br>{lead.get('name','')}（{party_label_ja(lead.get('party'))}）"
+                f"<br>得票率 {(lead.get('percent') or 0):.1f}%　開票率 {pct:.0f}%"
+            )
+
+    fig = go.Figure(
+        go.Choropleth(
+            locations=locations,
+            z=z,
+            locationmode="USA-states",
+            text=hover,
+            hovertemplate="%{text}<extra></extra>",
+            colorscale=[[0, DEM_COLOR], [0.5, "#F2F2F2"], [1, REP_COLOR]],
+            zmin=-1,
+            zmax=1,
+            showscale=False,
+            marker_line_color="white",
+            marker_line_width=1,
+        )
+    )
+    fig.update_layout(
+        title=title,
+        geo=dict(scope="usa", projection=dict(type="albers usa"), showlakes=False),
+        margin=dict(l=0, r=0, t=40, b=0),
+        height=520,
+    )
+    return fig
+
+
+with tab_map:
+    map_target = st.radio("表示するレース", ["上院(Senate)", "知事選(Governor)"], horizontal=True)
+    races_for_map = senate_races if map_target.startswith("上院") else governor_races
+    if races_for_map:
+        st.plotly_chart(_build_choropleth(races_for_map, map_target), use_container_width=True)
+        st.caption("青＝民主党がリード／赤＝共和党がリード／グレー＝データなし・接戦不明・その他政党。開票率0%の州はまだ投票前です。")
+    else:
+        st.info("地図に表示できるデータがまだありません。")
+
 
 with tab_watch:
-    st.subheader("MY WATCH")
-    st.markdown('<div class="watch-note">初期値は NC / TX / ME / OH / AK。自由に追加・削除できます。予測や評価ではなく、監視対象を絞るための表示設定です。</div>', unsafe_allow_html=True)
-    wc1, wc2, wc3 = st.columns([2.3, 1.5, 1.4])
-    with wc1:
-        watch_states = st.multiselect(
-            "監視する州",
-            options=sorted(STATE_NAMES),
-            default=[x for x in DEFAULT_WATCH_STATES if x in STATE_NAMES],
-            format_func=lambda x: f"{x} · {STATE_NAMES[x]}",
-            key="us_watch_states",
-        )
-    with wc2:
-        watch_types = st.multiselect("レース種別", ["Senate", "House", "Governor"], default=["Senate"], key="us_watch_types")
-    with wc3:
-        watch_sort = st.selectbox("並び順", ["未当確→票差の小さい順", "州順", "開票率の高い順"], key="us_watch_sort")
+    st.markdown("### 下院(House) 注目レース一覧")
+    st.caption(
+        "過去の選挙サイクルで接戦が続いてきた代表的な選挙区をいくつか選んだ初期ウォッチリストです。"
+        "435選挙区すべてを網羅するものではなく、『当選確実』『優勢』等の予測ラベルも付けていません。"
+        "data/us_house_watchlist_2026.json を編集すると表示対象を増減できます。"
+    )
+    watchlist = _load_house_watchlist()
+    cols = st.columns(2)
+    for i, entry in enumerate(watchlist):
+        district = entry["district"]
+        race = house_races.get(district)
+        with cols[i % 2]:
+            if race is None:
+                st.markdown(
+                    f'<div class="um-card"><div class="um-card-title">{district}（{entry["state"]}）</div>'
+                    '<div class="um-card-row">データ未取得</div></div>',
+                    unsafe_allow_html=True,
+                )
+                continue
+            candidates = sorted(race.get("candidates") or [], key=lambda c: c.get("votes") or 0, reverse=True)
+            pct = race.get("percent_reporting") or 0
+            status = "開票前" if pct == 0 else f"開票率 {pct:.0f}%"
+            rows_html = ""
+            for c in candidates:
+                color = party_color(c.get("party"))
+                votes = c.get("votes") or 0
+                vpct = c.get("percent") or 0
+                rows_html += (
+                    f'<div class="um-card-row">'
+                    f'<span><span class="um-badge" style="background:{color}">{party_label_ja(c.get("party"))}</span> '
+                    f'{c.get("name","")}</span>'
+                    f'<span>{votes:,}票（{vpct:.1f}%）</span></div>'
+                )
+            st.markdown(
+                f'<div class="um-card">'
+                f'<div class="um-card-title">{district}（{entry["state"]}）　'
+                f'<span style="color:#888;font-weight:400;font-size:.8rem;">{status}</span></div>'
+                f'{rows_html}</div>',
+                unsafe_allow_html=True,
+            )
 
-    watch_items = [x for x in all_rows if x["state"] in watch_states and x["type"] in watch_types]
-    if watch_sort == "州順":
-        watch_items = sorted(watch_items, key=state_sort_key)
-    elif watch_sort == "開票率の高い順":
-        watch_items = sorted(watch_items, key=reporting_sort_key)
-    else:
-        watch_items = sorted(watch_items, key=watch_sort_key)
-
-    wm1, wm2, wm3, wm4 = st.columns(4)
-    wm1.metric("監視レース", len(watch_items))
-    wm2.metric("未当確", sum(1 for x in watch_items if not x["called"]))
-    wm3.metric("CALL", sum(1 for x in watch_items if x["called"]))
-    reporting_values = [x["reporting"] for x in watch_items if x["reporting"] is not None]
-    wm4.metric("最大開票率", "—" if not reporting_values else f"{max(reporting_values):.1f}%")
-
-    if watch_items:
-        st.dataframe(race_table(watch_items, limit=120), use_container_width=True, hide_index=True, height=560)
-    else:
-        st.info("選択した州・種別に該当するレースはまだ取得されていません。")
-
-with tab_sen:
-    st.dataframe(race_table(senate), use_container_width=True, hide_index=True, height=560) if senate else st.info("上院レースはまだ取得されていません。")
-
-with tab_house:
-    st.dataframe(race_table(house), use_container_width=True, hide_index=True, height=620) if house else st.info("下院レースはまだ取得されていません。")
-
-with tab_gov:
-    st.dataframe(race_table(gov), use_container_width=True, hide_index=True, height=560) if gov else st.info("知事選レースはまだ取得されていません。")
-
-with tab_detail:
-    selectable = senate + gov + house + other
-    if not selectable:
-        st.info("レース一覧を取得できると、ここで1レースずつ詳細を確認できます。")
-    else:
-        labels = [f"{x['state'] or '--'} | {x['type']} | {x['name']} | ID {x['race_id']}" for x in selectable]
-        idx = st.selectbox("レースを選択", range(len(selectable)), format_func=lambda i: labels[i])
-        selected = selectable[idx]
-        rid = selected["race_id"]
-        if not rid:
-            st.error("このレースにはrace_idが見つかりません。")
-        else:
-            try:
-                detail = load_race_detail(rid, include_test)
-            except Exception as exc:
-                detail = selected["race"]
-                st.error(f"レース詳細の取得に失敗しました: {exc}")
-
-            name = ca.race_name(detail) or selected["name"]
-            rep = ca.reporting_pct(detail)
-            cs = ca.candidates(detail)
-            st.subheader(name)
-            a, b, c, d = st.columns(4)
-            a.metric("開票・報告率", "—" if rep is None else f"{rep:.1f}%")
-            total_votes = sum(v for v in (ca.candidate_votes(x) for x in cs) if v is not None)
-            b.metric("候補者得票計", f"{total_votes:,}" if total_votes else "—")
-            winner = next((x for x in cs if ca.candidate_called(x)), None)
-            c.metric("CALL", ca.candidate_name(winner) if winner else "未当確")
-            vg, pg = margin_info(detail)
-            d.metric("1-2位差", "—" if vg is None else f"{vg:,}票", None if pg is None else f"{pg:.2f}pt")
-
-            if cs:
-                sorted_cs = sorted(cs, key=lambda x: ca.candidate_votes(x) or 0, reverse=True)
-                html = ['<div class="race-box">']
-                for cand in sorted_cs:
-                    nm = escape(ca.candidate_name(cand))
-                    party = escape(ca.candidate_party(cand))
-                    votes = ca.candidate_votes(cand)
-                    pct = ca.candidate_percent(cand)
-                    call = '<span class="call-pill">CALL</span>' if ca.candidate_called(cand) else ''
-                    inc = ' · Inc.' if ca.candidate_incumbent(cand) else ''
-                    if votes is not None and pct is not None:
-                        row_html = f'<div class="candidate-row"><div class="candidate-name">{nm} <span style="color:#667085;font-weight:600">{party}{inc}</span>{call}</div><div class="candidate-vote">{votes:,}票</div><div class="candidate-pct">{pct:.2f}%</div></div>'
-                    elif votes is not None:
-                        row_html = f'<div class="candidate-row"><div class="candidate-name">{nm} <span style="color:#667085;font-weight:600">{party}{inc}</span>{call}</div><div class="candidate-vote">{votes:,}票</div></div>'
-                    else:
-                        row_html = f'<div class="candidate-row"><div class="candidate-name">{nm} <span style="color:#667085;font-weight:600">{party}{inc}</span>{call}</div><div class="candidate-vote">未集計</div></div>'
-                    html.append(row_html)
-                html.append('</div>')
-                st.markdown(''.join(html), unsafe_allow_html=True)
-
-                # Session-level history: useful while the app stays open, no write-back needed.
-                hist_key = f"us_hist_{rid}_{include_test}"
-                hist = st.session_state.setdefault(hist_key, [])
-                snap = ca.snapshot(detail)
-                sig = tuple((x["name"], x["votes"]) for x in snap["candidates"])
-                prev_sig = hist[-1]["_sig"] if hist else None
-                if sig != prev_sig:
-                    snap["_sig"] = sig
-                    hist.append(snap)
-                    if len(hist) > 500:
-                        del hist[:-500]
-                if len(hist) >= 2:
-                    chart_rows = []
-                    for h in hist:
-                        t = h["captured_at"]
-                        for cand in h["candidates"]:
-                            if cand["votes"] is not None:
-                                chart_rows.append({"time": t, "candidate": cand["name"], "votes": cand["votes"]})
-                    if chart_rows:
-                        chart_df = pd.DataFrame(chart_rows)
-                        fig2 = px.line(chart_df, x="time", y="votes", color="candidate", markers=True)
-                        fig2.update_layout(height=360, margin=dict(l=0, r=0, t=20, b=0), legend_title_text="")
-                        st.plotly_chart(fig2, use_container_width=True, config={"displayModeBar": False})
-            else:
-                st.info("候補者データはまだありません。")
-
-            map_col, raw_col = st.columns([1, 1])
-            with map_col:
-                if st.button("このレースのAPI地図を表示", use_container_width=True):
-                    try:
-                        svg = load_map_svg(rid, include_test)
-                        st.components.v1.html(svg, height=520, scrolling=True)
-                    except Exception as exc:
-                        st.warning(f"API地図を表示できませんでした: {exc}")
-            with raw_col:
-                with st.expander("APIレスポンス（確認用）"):
-                    st.json(detail)
-
-st.markdown("---")
-st.markdown('<div class="small-note">Data: civicAPI. 本画面はcivicAPIの公開APIを利用しています。重要な数値は各州・郡の公式選挙当局でも確認してください。上院の非改選ベースは2026年のU.S. Senate公式党派構成・Class II一覧を基にした固定値です。全米州地図はPlotly内蔵境界を使用しているため、現段階では追加の地図ファイルは不要です。</div>', unsafe_allow_html=True)
+st.caption("v0.9.39 · US MIDTERMS 2026 · civicAPI（非公式）")

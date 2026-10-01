@@ -75,6 +75,7 @@ div[data-testid="stAppViewContainer"] { padding-top: 0 !important; }
 .portal-card-matrix { border-top-color:#222; }
 .portal-card-shizuoka { border-top-color:#5A7247; }
 .portal-card-realmap { border-top-color:#1E6E5C; }
+.portal-card-usmidterm { border-top-color:#28468C; }
 .portal-card-title {
     font-family:Georgia,"Yu Mincho",serif;
     font-size:1.65rem;
@@ -108,10 +109,11 @@ div[data-testid="stButton"] > button {
         unsafe_allow_html=True,
     )
 
-    st.markdown('<div class="portal-kicker">OKINAWA ELECTION PORTAL · v0.9.35 · LIVE SHEET</div>', unsafe_allow_html=True)
+    st.markdown('<div class="portal-kicker">OKINAWA ELECTION PORTAL · v0.9.39</div>', unsafe_allow_html=True)
     st.markdown('<div class="portal-title">沖縄選挙ポータル</div>', unsafe_allow_html=True)
     st.markdown(
-        '<div class="portal-deck">沖縄の選挙を、開票速報と過去の確定結果の2つの入口から見るためのポータルです。</div>',
+        '<div class="portal-deck">沖縄の選挙を、開票速報と過去の確定結果の2つの入口から見るためのポータルです。'
+        '2026年米国中間選挙のページも追加しました。</div>',
         unsafe_allow_html=True,
     )
     st.markdown('<div class="portal-rule"></div>', unsafe_allow_html=True)
@@ -210,8 +212,25 @@ div[data-testid="stButton"] > button {
         if st.button("実寸地図を見る", key="home_realmap", use_container_width=True):
             go("realmap")
 
+    c7, _c8, _c9 = st.columns(3, gap="large")
+
+    with c7:
+        st.markdown(
+            """
+<div class="portal-card portal-card-usmidterm">
+  <div class="portal-card-title">2026年米国中間選挙</div>
+  <div class="portal-card-copy">
+    上院・下院・知事選を、開票速報・全米マップ・注目レース一覧で見る（データ：civicAPI／参考情報）。
+  </div>
+</div>
+""",
+            unsafe_allow_html=True,
+        )
+        if st.button("米国中間選挙を見る", key="home_usmidterm", use_container_width=True):
+            go("usmidterm")
+
     st.markdown(
-        '<div class="portal-foot">Okinawa Election Portal — v0.9.38</div>',
+        '<div class="portal-foot">Okinawa Election Portal — v0.9.39</div>',
         unsafe_allow_html=True,
     )
 
@@ -231,6 +250,8 @@ elif page == "shizuoka":
     exec(compile((APP_DIR / "shizuoka_results.py").read_text(encoding="utf-8"), "shizuoka_results.py", "exec"))
 elif page == "realmap":
     exec(compile((APP_DIR / "real_map.py").read_text(encoding="utf-8"), "real_map.py", "exec"))
+elif page == "usmidterm":
+    exec(compile((APP_DIR / "us_midterms.py").read_text(encoding="utf-8"), "us_midterms.py", "exec"))
 else:
     st.session_state["portal_page"] = "home"
     st.rerun()
