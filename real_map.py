@@ -265,7 +265,9 @@ with nav_label:
     st.markdown('<div class="portal-breadcrumb">沖縄選挙ポータル ／ 開票マップ【実寸版】</div>', unsafe_allow_html=True)
 st.markdown('<div class="portal-nav-spacer"></div>', unsafe_allow_html=True)
 
-if st_autorefresh is not None:
+# 投開票が終了したため、Googleスプレッドシートへの自動定期取得（オートリフレッシュ）は停止している。
+REALMAP_AUTOREFRESH_ENABLED = False
+if REALMAP_AUTOREFRESH_ENABLED and st_autorefresh is not None:
     st_autorefresh(interval=20 * 1000, limit=None, key="realmap-autorefresh")
 
 st.markdown('<div class="page-title">沖縄県知事選 開票マップ【実寸版】</div>', unsafe_allow_html=True)
@@ -291,7 +293,8 @@ if problems:
     st.warning("地図データの検証で問題が見つかりました：\n- " + "\n- ".join(problems))
 
 
-@st.cache_data(ttl=15, show_spinner=False)
+# 投開票が終了したため自動取得は停止。TTLなしで初回取得後はキャッシュを使い回す。
+@st.cache_data(show_spinner=False)
 def load_live():
     book = ld.load_google_workbook()
     return ld.build_live_models(book, meta_df[["municipality_code", "municipality_name"]])

@@ -211,7 +211,7 @@ div[data-testid="stButton"] > button {
             go("realmap")
 
     st.markdown(
-        '<div class="portal-foot">Okinawa Election Portal — v0.9.37</div>',
+        '<div class="portal-foot">Okinawa Election Portal — v0.9.38</div>',
         unsafe_allow_html=True,
     )
 

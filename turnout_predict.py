@@ -230,7 +230,8 @@ def parse_turnout_blocks(raw: pd.DataFrame):
     return results, debug_rows
 
 
-@st.cache_data(ttl=12, show_spinner=False)
+# 投開票が終了したため自動取得は停止。TTLなしで初回取得後はキャッシュを使い回す。
+@st.cache_data(show_spinner=False)
 def load_current_timeseries():
     # GVizのヘッダー推測はシート内容によって挙動が変わるため複数方式を試し、
     # 最も多くブロックを復元できた結果を採用する。
@@ -379,7 +380,9 @@ with nav_label:
     st.markdown('<div class="portal-breadcrumb">沖縄選挙ポータル ／ 投票率予測</div>', unsafe_allow_html=True)
 st.markdown('<div class="portal-nav-spacer"></div>', unsafe_allow_html=True)
 
-if st_autorefresh is not None:
+# 投開票が終了したため、Googleスプレッドシートへの自動定期取得（オートリフレッシュ）は停止している。
+TURNOUT_AUTOREFRESH_ENABLED = False
+if TURNOUT_AUTOREFRESH_ENABLED and st_autorefresh is not None:
     st_autorefresh(interval=15 * 1000, limit=None, key="turnout-predict-autorefresh")
 
 st.markdown('<div class="page-title">沖縄県知事選　投票率予測</div>', unsafe_allow_html=True)

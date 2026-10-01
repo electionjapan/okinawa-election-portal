@@ -58,7 +58,7 @@ with nav_back:
         st.rerun()
 with nav_label:
     st.markdown('<div class="portal-breadcrumb">沖縄選挙ポータル / 開票速報</div>', unsafe_allow_html=True)
-st.caption("v0.9.37 · LIVE SHEET · NEW MAP")
+st.caption("v0.9.38 · LIVE SHEET · NEW MAP")
 
 st.markdown(
     """
@@ -711,10 +711,11 @@ def camp_candidate_names(df, name_col="candidate_name", attr_col="attribute"):
 # -------------------- data --------------------
 results, elections, turnout, municipalities, geojson, layout_boxes = load_all()
 
-# Automatic refresh interval (seconds). Kept short per user request, balanced against
-# not hammering the public Google Sheet.
+# 投開票が終了したため、Googleスプレッドシートへの自動定期取得（オートリフレッシュ）は
+# 停止している。ページ自体は引き続き閲覧でき、手動更新ボタンで再取得することもできる。
 LIVE_REFRESH_SEC = 15
-if st_autorefresh is not None:
+LIVE_AUTOREFRESH_ENABLED = False
+if LIVE_AUTOREFRESH_ENABLED and st_autorefresh is not None:
     st_autorefresh(interval=LIVE_REFRESH_SEC * 1000, limit=None, key="live-sheet-autorefresh")
 
 with st.sidebar:
@@ -739,10 +740,13 @@ with st.sidebar:
 
     swing_threshold = st.select_slider("シフト表示の最低開票率", options=[25, 50, 75, 90, 95, 100], value=50)
     sort_mode = st.selectbox("市町村一覧の並べ替え", ["得票規模", "開票率", "リード票", "接戦順", "残票", "県の並び順"])
-    st.caption("手動更新ボタンでも即時に最新の状態を取得できます。")
+    st.caption("投開票終了に伴い自動更新は停止しています。必要な場合は手動更新ボタンで取得できます。")
     st.caption("地図は本島を中央、周辺離島を外周インセットへ再配置した模式図です。")
 
-@st.cache_data(ttl=12, show_spinner=False)
+# 自動取得停止に伴い、TTLは設定しない（＝初回取得後はキャッシュを使い回し、
+# ページの再読み込みやオートリフレッシュのたびにGoogleへアクセスしない）。
+# 手動更新ボタン（st.cache_data.clear()）を押した時のみ再取得される。
+@st.cache_data(show_spinner=False)
 def get_live_book(sheet_id):
     return load_google_workbook(sheet_id)
 
@@ -1004,7 +1008,7 @@ else:
 
 st.markdown('<div class="sub-rule"></div>', unsafe_allow_html=True)
 st.caption(
-    "v0.9.37｜公式値：投票者数・投票率・候補者得票・開票率・無効票確定・残票。"
+    "v0.9.38｜公式値：投票者数・投票率・候補者得票・開票率・無効票確定・残票。"
     "独自推計：推計無効票・推計有効残票・補正係数。推計値には『推計』『約』を付けています。"
 )
 
