@@ -31,7 +31,7 @@ except Exception:
 APP_DIR = Path(__file__).resolve().parent
 DATA_DIR = APP_DIR / "data"
 
-from portal_config import GOOGLE_SHEET_ID, OKINAWA_LIVE_ENABLED
+from portal_config import GOOGLE_SHEET_ID
 SHEET_ID = GOOGLE_SHEET_ID
 GID_02A = 87116811 if False else None  # gid未確定の場合はシート名でgvizアクセスする
 
@@ -53,9 +53,7 @@ class FetchError(RuntimeError):
 
 
 def _fetch_sheet_gviz(sheet_name: str, timeout: float = 15.0, headers: int | None = 0) -> pd.DataFrame:
-    """Archived reader. Network acquisition is disabled after election operation."""
-    if not OKINAWA_LIVE_ENABLED:
-        raise FetchError("沖縄2026のライブデータ取得は終了しています。")
+    """GViz CSVを生の行列として取得。headersを変えて再試行できるようにする。"""
     headers_q = "" if headers is None else f"&headers={headers}"
     url = (
         f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq"

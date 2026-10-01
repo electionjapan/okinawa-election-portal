@@ -5,7 +5,7 @@ import streamlit as st
 APP_DIR = Path(__file__).resolve().parent
 
 st.set_page_config(
-    page_title="選挙データポータル",
+    page_title="沖縄選挙ポータル",
     page_icon="🗳️",
     layout="wide",
     initial_sidebar_state="collapsed",
@@ -108,22 +108,13 @@ div[data-testid="stButton"] > button {
         unsafe_allow_html=True,
     )
 
-    st.markdown('<div class="portal-kicker">ELECTION DATA PORTAL · v0.10.1</div>', unsafe_allow_html=True)
-    st.markdown('<div class="portal-title">選挙データポータル</div>', unsafe_allow_html=True)
+    st.markdown('<div class="portal-kicker">OKINAWA ELECTION PORTAL · v0.9.35 · LIVE SHEET</div>', unsafe_allow_html=True)
+    st.markdown('<div class="portal-title">沖縄選挙ポータル</div>', unsafe_allow_html=True)
     st.markdown(
-        '<div class="portal-deck">沖縄の選挙アーカイブと、2026年アメリカ中間選挙のリアルタイム開票を一つの入口から見るポータルです。</div>',
+        '<div class="portal-deck">沖縄の選挙を、開票速報と過去の確定結果の2つの入口から見るためのポータルです。</div>',
         unsafe_allow_html=True,
     )
     st.markdown('<div class="portal-rule"></div>', unsafe_allow_html=True)
-
-    st.markdown("""
-<div class="portal-card" style="border-top-color:#1F4E79;min-height:150px;margin-bottom:1.4rem;">
-  <div class="portal-card-title">🇺🇸 2026 アメリカ中間選挙</div>
-  <div class="portal-card-copy">civicAPIから上院・下院・知事選を取得。上院100議席ボード、MY WATCH、票差・開票率、当確監視、レース詳細に対応。</div>
-</div>
-""", unsafe_allow_html=True)
-    if st.button("US MIDTERMSを開く", key="home_us", type="primary", use_container_width=True):
-        go("us")
 
     c1, c2, c3 = st.columns(3, gap="large")
 
@@ -131,31 +122,31 @@ div[data-testid="stButton"] > button {
         st.markdown(
             """
 <div class="portal-card portal-card-live">
-  <div class="portal-card-title">沖縄知事選 開票速報【更新終了】</div>
+  <div class="portal-card-title">開票速報</div>
   <div class="portal-card-copy">
-    2026年9月13日の運用を終了。Googleスプレッドシートからのデータ取得は停止済みです。
+    6候補の得票・開票率・残票・推計無効票・過去選挙からのシフトを追う速報画面。
   </div>
 </div>
 """,
             unsafe_allow_html=True,
         )
-        if st.button("更新終了の案内", key="home_live", use_container_width=True):
-            go("okinawa_closed")
+        if st.button("開票速報を見る", key="home_live", type="primary", use_container_width=True):
+            go("live")
 
     with c2:
         st.markdown(
             """
 <div class="portal-card portal-card-turnout">
-  <div class="portal-card-title">沖縄 投票率予測【更新終了】</div>
+  <div class="portal-card-title">投票率予測</div>
   <div class="portal-card-copy">
-    リアルタイム取得は終了。投票速報シートへのアクセスは行いません。
+    当日の中間投票率と過去選挙の推移を比較し、最終投票率をリアルタイム予測。
   </div>
 </div>
 """,
             unsafe_allow_html=True,
         )
-        if st.button("更新終了の案内", key="home_turnout", use_container_width=True):
-            go("okinawa_closed")
+        if st.button("投票率予測を見る", key="home_turnout", type="primary", use_container_width=True):
+            go("turnout")
 
     with c3:
         st.markdown(
@@ -208,44 +199,38 @@ div[data-testid="stButton"] > button {
         st.markdown(
             """
 <div class="portal-card portal-card-realmap">
-  <div class="portal-card-title">沖縄 開票マップ【更新終了】</div>
+  <div class="portal-card-title">開票マップ【実寸版】</div>
   <div class="portal-card-copy">
-    リアルタイム取得は終了。Googleスプレッドシートへのアクセスは行いません。
+    離島を並べ替えず、実際の位置関係・距離感のまま41市町村の開票結果を地図で見る。
   </div>
 </div>
 """,
             unsafe_allow_html=True,
         )
-        if st.button("更新終了の案内", key="home_realmap", use_container_width=True):
-            go("okinawa_closed")
+        if st.button("実寸地図を見る", key="home_realmap", use_container_width=True):
+            go("realmap")
 
     st.markdown(
-        '<div class="portal-foot">Election Data Portal — v0.10.1</div>',
+        '<div class="portal-foot">Okinawa Election Portal — v0.9.37</div>',
         unsafe_allow_html=True,
     )
 
 page = st.session_state["portal_page"]
 
-def render_okinawa_closed():
-    if st.button("← ポータルTOP", key="closed_back"):
-        go("home")
-    st.title("沖縄県知事選 2026 — 更新終了")
-    st.info("2026年9月13日の選挙運用は終了しました。リアルタイム用Googleスプレッドシートからのデータ取得・自動更新は停止しています。")
-    st.markdown("過去選挙の確定データ、市町村マトリクス、静岡県の過去選挙ページは引き続きローカルJSONのみで閲覧できます。")
-
 if page == "home":
     render_home()
-elif page == "us":
-    exec(compile((APP_DIR / "us_midterms.py").read_text(encoding="utf-8"), "us_midterms.py", "exec"))
-elif page in {"live", "turnout", "realmap", "okinawa_closed"}:
-    # 重要: 沖縄ライブ用ファイルは実行しない。これによりGoogle Sheetsへのアクセスも発生しない。
-    render_okinawa_closed()
+elif page == "live":
+    exec(compile((APP_DIR / "live_results.py").read_text(encoding="utf-8"), "live_results.py", "exec"))
+elif page == "turnout":
+    exec(compile((APP_DIR / "turnout_predict.py").read_text(encoding="utf-8"), "turnout_predict.py", "exec"))
 elif page == "history":
     exec(compile((APP_DIR / "historical_results.py").read_text(encoding="utf-8"), "historical_results.py", "exec"))
 elif page == "matrix":
     exec(compile((APP_DIR / "matrix_results.py").read_text(encoding="utf-8"), "matrix_results.py", "exec"))
 elif page == "shizuoka":
     exec(compile((APP_DIR / "shizuoka_results.py").read_text(encoding="utf-8"), "shizuoka_results.py", "exec"))
+elif page == "realmap":
+    exec(compile((APP_DIR / "real_map.py").read_text(encoding="utf-8"), "real_map.py", "exec"))
 else:
     st.session_state["portal_page"] = "home"
     st.rerun()
