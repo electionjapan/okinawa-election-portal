@@ -1,4 +1,4 @@
-# 沖縄選挙ポータル v0.9.39 — GitHubアップロード用
+# 沖縄選挙ポータル v0.9.40 — GitHubアップロード用
 
 このフォルダは Streamlit Community Cloud 用の最小構成です。
 
@@ -22,6 +22,20 @@
 自体はファイル名を変えるたびに必ず再取得されるため、古いキャッシュが表示され続ける心配はありません)。
 
 
+
+## v0.9.40
+- 「2026年米国中間選挙」ページを「Election Night Dashboard」として全面改修（ユーザー提供のデザイン仕様書に基づく）。
+  - **Election Header**: LIVE(自動更新ON時)／PREVIEW(ダミーデータ時)／RESULTS(通常)のバッジと、JST/ET併記の最終更新時刻を表示する専用ヘッダーに変更。
+  - **BALANCE OF POWER**: 上院(SENATE)・下院(HOUSE)それぞれの勢力を横長バーで表示。濃色＝当確(CALLED、APIのwinnerフラグ)、淡色＝リード(LEADING、単なる1位)で色の濃さを分け、中央に「51 TO CONTROL」「218 TO CONTROL」の目安線を表示。非改選(holdover)議席数は`data/us_congress_holdover_2026.json`の設定値(暫定値、要確認)を使用。知事選は過半数概念がないため、CALL/OTHER/UNCALLEDのサマリーカードのみ表示。
+  - **LIVE WATCH STRIP**: 上院レースの中から票差が小さい順に自動抽出した横長の接戦サマリーを追加(サイト側が勝手に「注目」と判定するのではなく、票差という客観的な基準で抽出)。
+  - **WATCH DESK**: st.dataframeを主役から外し、レースカード(得票率・得票数・票差・開票率プログレスバー・CALLED/LEADINGバッジ)によるカードグリッドに変更。カテゴリ(ALL/SENATE/HOUSE/GOVERNOR)と州のクイックフィルターを画面上部に配置。
+  - **U.S. MAP**: 高さを660pxに拡大し、DEM CALL/DEM LEAD/REP LEAD/REP CALL/NO DATAの5段階で塗り分け。凡例を色チップで明示し、ホバーに州名・レース名・候補者得票率・票差・開票率をまとめて表示。
+  - **ALL RACES**: 従来のst.dataframe表示はexpander内の補助ビューに格下げ。
+  - **CALLED/LEADINGの判定ロジック**: `us_midterm_data.py`に`race_status`(called/leading/not_reporting/no_data)・`race_margin`(票差・pt差)・`map_score`(地図用5段階スコア)・`senate_balance`/`house_balance`/`governor_summary`(BALANCE OF POWER集計)を追加。0票のレースを「リード」扱いしない、独自の接戦判定(TOSSUP等のラベル)を付けない、といった仕様書の指示に対応。
+  - **BALANCE OF POWER用の下院全米集計**: `get_all_house_races`で全50州の下院本選データを個別に取得・集計するようにした(WATCH DESKの「注目レース一覧」自体は引き続き`data/us_house_watchlist_2026.json`の初期セットのみを表示し、435選挙区すべてをカード化するものではない)。
+  - **DESIGN PREVIEW DATA**: 画面上部のチェックボックスでオン/オフできるダミーデータモードを追加。オン時は黄色いバナーで「実際の開票結果ではありません」と常時明示し、票差・開票率・当確などが混在するシード固定の仮データ(候補者名は「(州) Dem Nominee」のような明示的な仮名)でビジュアルを確認できる。
+  - タイポグラフィに`font-variant-numeric: tabular-nums`を適用し、ページ幅を最大1420pxまで拡張。手動更新・自動更新・プレビューデータ切り替えをサイドバーから画面上部のコントロール行へ移動。
+  - 既存の沖縄関連ページには変更なし。
 
 ## v0.9.39
 - 新ページ「2026年米国中間選挙」を追加(トップページ7枚目のカード)。沖縄の選挙データとは完全に独立した新規コンテンツで、データソースはcivicAPI(認証不要・無料の非公式サードパーティAPI)。

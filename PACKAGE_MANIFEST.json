@@ -1,7 +1,7 @@
 [
   {
     "path": "README.md",
-    "size_bytes": 31976
+    "size_bytes": 35297
   },
   {
     "path": "app.py",
@@ -84,6 +84,10 @@
     "size_bytes": 1427
   },
   {
+    "path": "data/us_congress_holdover_2026.json",
+    "size_bytes": 1303
+  },
+  {
     "path": "data/us_house_watchlist_2026.json",
     "size_bytes": 1629
   },
@@ -129,10 +133,10 @@
   },
   {
     "path": "us_midterm_data.py",
-    "size_bytes": 6694
+    "size_bytes": 16500
   },
   {
     "path": "us_midterms.py",
-    "size_bytes": 13244
+    "size_bytes": 32135
   }
 ]

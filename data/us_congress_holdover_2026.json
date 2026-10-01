@@ -1,0 +1,20 @@
+{
+  "_note": "2026年11月3日の改選『対象外』の議席(今回選挙の結果で変動しない現有議席)の会派内訳。BALANCE OF POWERバーで『非改選』分として使う暫定値です。Claudeの学習データの時点(2026年1月頃)を起点にした概算であり、欠員・特別選挙・離党/会派移動等によって2026年10月時点の実際の構成とはズレている可能性があります。選挙当日までに必ず実際の議席構成に更新するか、ページ上部の数値入力で上書きしてください。",
+  "_as_of": "2026-01 時点の概算（要更新）",
+  "senate": {
+    "total_seats": 100,
+    "up_in_2026": 33,
+    "holdover_not_up_2026": 67,
+    "holdover_dem_caucus": 45,
+    "holdover_rep": 22,
+    "holdover_other": 0,
+    "_check": "holdover_dem_caucus + holdover_rep + holdover_other は holdover_not_up_2026(67)と一致させてください。"
+  },
+  "house": {
+    "total_seats": 435,
+    "holdover_dem": 0,
+    "holdover_rep": 0,
+    "holdover_vacant": 0,
+    "_note_house": "下院は2年任期のため全435議席が2026年に改選対象です。『非改選』分は基本的に存在しないので、通常は0のままで構いません(特殊な事情がある場合のみ編集してください)。"
+  }
+}
