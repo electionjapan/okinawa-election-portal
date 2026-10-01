@@ -8,7 +8,7 @@ from urllib.request import Request, urlopen
 
 import pandas as pd
 
-GOOGLE_SHEET_ID = "1s6H3je6DPCSNIzwcOQpA39t_ecISuuAjY4qT2a291is"
+from portal_config import GOOGLE_SHEET_ID, OKINAWA_LIVE_ENABLED
 SHEET_NAMES = [
     "00_候補者",
     "01_市町村マスター",
@@ -36,7 +36,9 @@ def _csv_url(sheet_name: str, sheet_id: str = GOOGLE_SHEET_ID) -> str:
 
 
 def fetch_sheet_csv(sheet_name: str, sheet_id: str = GOOGLE_SHEET_ID, timeout: int = 12) -> pd.DataFrame:
-    """Read one public Google Sheet tab through the GViz CSV endpoint."""
+    """Archived: network acquisition is disabled after the 2026 Okinawa election."""
+    if not OKINAWA_LIVE_ENABLED:
+        raise LiveSheetError("沖縄2026のライブデータ取得は終了しています。")
     url = _csv_url(sheet_name, sheet_id)
     req = Request(url, headers={"User-Agent": "Mozilla/5.0 OkinawaElectionPortal/0.9.23"})
     try:

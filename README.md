@@ -1,3 +1,22 @@
+# v0.10.1 更新メモ（2026-10-01）
+
+- US MIDTERMSに「SENATE CONTROL」を追加。非改選議席を土台に、civicAPIで確認できた当確を積み上げて100議席全体を表示。中央に50ライン、単独過半数51を表示。
+- 「WATCH DESK」を追加。初期監視州はNC / TX / ME / OH / AK。州・レース種別を自由に変更でき、未当確→票差の小さい順／州順／開票率順で並び替え可能。
+- QUICK STATE FILTERを追加。ALL / NC / TX / ME / OH / AK をワンクリックで切り替え。
+- CALL MONITORを追加。当確が付いたレースだけを全米から抽出。
+- 候補者得票がまだ無い段階で先頭候補を誤って「リード」と認識しないよう、civicAPI正規化ロジックを修正。
+- 沖縄ライブ取得を二重に停止。トップページから旧モジュールを実行しないだけでなく、`portal_config.py`のキルスイッチと各取得関数でもGoogle Sheets通信を拒否するよう変更。
+
+---
+
+# v0.10.0 更新メモ（2026-10-01）
+
+- 沖縄県知事選2026のリアルタイム運用を終了。`app.py` から `live_results.py` / `turnout_predict.py` / `real_map.py` を実行しないため、Google Sheetsへの取得処理は停止しています。
+- `US MIDTERMS` を追加。civicAPI v2から2026年11月3日の米上院・下院・知事選を取得します。
+- 州地図はPlotly内蔵境界を利用し、現段階では米国向けGeoJSONの追加は不要です。
+
+---
+
 # 沖縄選挙ポータル v0.9.37 — GitHubアップロード用
 
 このフォルダは Streamlit Community Cloud 用の最小構成です。
