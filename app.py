@@ -76,6 +76,7 @@ div[data-testid="stAppViewContainer"] { padding-top: 0 !important; }
 .portal-card-shizuoka { border-top-color:#5A7247; }
 .portal-card-realmap { border-top-color:#1E6E5C; }
 .portal-card-usmidterm { border-top-color:#28468C; }
+.portal-card-sangiinpr { border-top-color:#6B3FA0; }
 .portal-card-title {
     font-family:Georgia,"Yu Mincho",serif;
     font-size:1.65rem;
@@ -229,6 +230,23 @@ div[data-testid="stButton"] > button {
         if st.button("米国中間選挙を見る", key="home_usmidterm", use_container_width=True):
             go("usmidterm")
 
+    c10, _c11, _c12 = st.columns(3, gap="large")
+
+    with c10:
+        st.markdown(
+            """
+<div class="portal-card portal-card-sangiinpr">
+  <div class="portal-card-title">参院比例 個人票分析</div>
+  <div class="portal-card-copy">
+    2022・2025年参議院比例代表を、全国市区町村・政令市行政区別の候補者個人票で分析。
+  </div>
+</div>
+""",
+            unsafe_allow_html=True,
+        )
+        if st.button("参院比例を見る", key="home_sangiinpr", use_container_width=True):
+            go("sangiinpr")
+
     st.markdown(
         '<div class="portal-foot">Okinawa Election Portal — v0.9.40</div>',
         unsafe_allow_html=True,
@@ -252,6 +270,8 @@ elif page == "realmap":
     exec(compile((APP_DIR / "real_map.py").read_text(encoding="utf-8"), "real_map.py", "exec"))
 elif page == "usmidterm":
     exec(compile((APP_DIR / "us_midterms.py").read_text(encoding="utf-8"), "us_midterms.py", "exec"))
+elif page == "sangiinpr":
+    exec(compile((APP_DIR / "sangiin_pr.py").read_text(encoding="utf-8"), "sangiin_pr.py", "exec"))
 else:
     st.session_state["portal_page"] = "home"
     st.rerun()
