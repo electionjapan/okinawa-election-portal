@@ -1,0 +1,21 @@
+{
+  "2025_districts": 1893,
+  "2025_unmatched_districts": [],
+  "2025_totals_unmatched_districts": [],
+  "2025_n_candidate_rows": 316058,
+  "2025_n_party_name_rows": 30288,
+  "2025_n_totals_rows": 60576,
+  "2025_mismatch_candidate_sum_vs_official": 0,
+  "2025_mismatch_party_total": 0,
+  "2022_districts": 1896,
+  "2022_unmatched_districts": [],
+  "2022_totals_unmatched_districts": [],
+  "2022_n_candidate_rows": 316632,
+  "2022_n_party_name_rows": 28440,
+  "2022_n_totals_rows": 56880,
+  "2022_mismatch_candidate_sum_vs_official": 0,
+  "2022_mismatch_party_total": 0,
+  "detail_prefectures_2022": 47,
+  "detail_prefectures_2025": 47,
+  "2025_national_total_valid_votes": "59185398.465"
+}
